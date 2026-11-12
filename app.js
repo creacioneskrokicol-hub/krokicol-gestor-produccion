@@ -4,7 +4,7 @@ let records = JSON.parse(localStorage.getItem("krokicolProduccion") || "[]");
 $("date").value = new Date().toISOString().slice(0,10);
 
 function renderSizeInputs(){
-  $("sizeInputs").innerHTML = sizes.map(s=>`<tr><td>${s}</td><td><input type="number" min="0" step="1" class="int" data-size="${s}" placeholder="0"></td><td><input type="number" min="0" step="1" class="bad" data-size="${s}" placeholder="0"></td><td class="good-cell" id="good-${s}">0</td></tr>`).join("");
+  $("sizeInputs").innerHTML = sizes.map(s=>`<tr><td>${s}</td><td><input type="number" min="0" max="100" step="1" list="quantityOptions" class="int" data-size="${s}" placeholder="0"></td><td><input type="number" min="0" max="100" step="1" list="quantityOptions" class="bad" data-size="${s}" placeholder="0"></td><td class="good-cell" id="good-${s}">0</td></tr>`).join("");
   document.querySelectorAll(".int,.bad").forEach(el=>el.addEventListener("input", updateGoods));
 }
 function updateGoods(){

@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#123b36">
+  <title>KROKICOL | Registro de producción</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand"><span class="brand-mark">K</span><div><strong>KROKICOL</strong><small>CONTROL DE PRODUCCIÓN</small></div></div>
+    <span class="pilot">VERSIÓN PILOTO</span>
+  </header>
+
+  <main class="container">
+    <section class="intro">
+      <div>
+        <p class="eyebrow">REGISTRO INDUSTRIAL</p>
+        <h1>Producción de suelas</h1>
+        <p class="muted">Registra cada operario, color y turno. Las unidades buenas se calculan automáticamente.</p>
+      </div>
+      <div class="summary"><span id="countRows">0</span><small>registros agregados</small></div>
+    </section>
+
+    <section class="panel">
+      <div class="section-heading"><div><span class="step">01</span><h2>Datos generales</h2></div></div>
+      <div class="form-grid general-grid">
+        <label>Producto<input id="product" value="SUELA EVA M33 ETE-1"></label>
+        <label>Lote<input id="lot" value="2610129"></label>
+        <label>Fecha<input id="date" type="date"></label>
+        <label>Turno<select id="shift"><option>MAÑANA</option><option>TARDE</option><option>NOCHE</option></select></label>
+        <label class="wide">Color<input id="color" placeholder="Ej. Blanco plomo"></label>
+      </div>
+      <p class="hint">Puedes agregar varios colores y turnos. Cada registro se guarda en la misma tabla de producción.</p>
+    </section>
+
+    <section class="panel">
+      <div class="section-heading"><div><span class="step">02</span><h2>Producción por operario</h2></div></div>
+      <div class="operator-head">
+        <label class="operator-name">Nombre del operario<input id="operator" placeholder="Nombre y apellido"></label>
+        <div class="size-tools">
+          <label>Tallas (separadas por coma)<input id="sizes" value="39,40,41,42" aria-label="Tallas"></label>
+          <button class="button secondary" id="applySizes" type="button">Aplicar tallas</button>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table class="entry-table">
+          <thead><tr><th>Talla</th><th>Inyectadas (INT)</th><th>Malas</th><th>Buenas (auto.)</th></tr></thead>
+          <tbody id="sizeInputs"></tbody>
+        </table>
+      </div>
+      <div class="form-actions">
+        <button class="button primary" id="addRecord" type="button">＋ Agregar operario a la tabla</button>
+        <button class="button secondary" id="clearInputs" type="button">Limpiar campos</button>
+      </div>
+      <p class="hint">En la hoja física, una rayita significa 0 unidades malas. Aquí puedes dejar “Malas” en cero.</p>
+    </section>
+
+    <section class="panel">
+      <div class="section-heading between"><div><span class="step">03</span><h2>Registros acumulados</h2></div><button class="text-button" id="clearAll" type="button">Eliminar todos</button></div>
+      <div class="table-wrap">
+        <table class="records-table">
+          <thead id="recordsHead"></thead>
+          <tbody id="recordsBody"></tbody>
+        </table>
+      </div>
+      <div class="export-row">
+        <div><strong>Un solo archivo para toda la producción</strong><small>Se exportan todos los turnos, colores y operarios registrados.</small></div>
+        <button class="button export" id="exportExcel" type="button">⇩ Descargar Excel (.xlsx)</button>
+      </div>
+      <p class="footnote">Piloto: los datos se guardan en este navegador. Descarga el Excel como respaldo antes de cerrar o cambiar de dispositivo.</p>
+    </section>
+  </main>
+  <footer>KROKICOL · Herramienta interna de apoyo a producción</footer>
+  <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

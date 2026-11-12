@@ -4,6 +4,10 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#123b36">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
   <title>KROKICOL | Registro de producción</title>
   <link rel="stylesheet" href="styles.css">
 </head>
@@ -72,8 +76,20 @@
       <p class="footnote">Piloto: los datos se guardan en este navegador. Descarga el Excel como respaldo antes de cerrar o cambiar de dispositivo.</p>
     </section>
   </main>
-  <footer>KROKICOL · Herramienta interna de apoyo a producción</footer>
+  <footer>KROKICOL · Herramienta interna de apoyo a producción <span id="connectionStatus" aria-live="polite">· Comprobando conexión…</span></footer>
   <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
+  <script>
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () => navigator.serviceWorker.register("./service-worker.js").catch(console.error));
+    }
+    const connectionLabel = document.getElementById("connectionStatus");
+    function showConnection() {
+      if (connectionLabel) connectionLabel.textContent = navigator.onLine ? "· En línea" : "· Sin conexión";
+    }
+    window.addEventListener("online", showConnection);
+    window.addEventListener("offline", showConnection);
+    showConnection();
+  </script>
   <script src="app.js"></script>
 </body>
 </html>

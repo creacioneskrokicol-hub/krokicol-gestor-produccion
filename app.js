@@ -1,5 +1,5 @@
 const $ = id => document.getElementById(id);
-let sizes = [39,40,41,42];
+let sizes = ["39","40","41","42"];
 let records = JSON.parse(localStorage.getItem("krokicolProduccion") || "[]");
 $("date").value = new Date().toISOString().slice(0,10);
 
@@ -15,27 +15,49 @@ function updateGoods(){
     $("good-"+s).style.color = bad>total ? "#b04438" : "";
   });
 }
-function normalizeSize(value){
-  const raw = String(value).trim().replace(/\\s+/g,"");
-  const special = raw.endsWith("*");
-  const numberText = special ? raw.slice(0,-1) : raw;
-  if(!/^\\d+$/.test(numberText)) return null;
-  const number = Number(numberText);
-  if(!Number.isInteger(number) || number <= 0) return null;
-  return special ? `${number}*` : String(number);
-}
+const availableSizes = Array.from({length:26}, (_,i)=>String(i+20)); // 20 a 45
+let selectedSizes = new Set(["39","40","41","42"]);
+let confirmedSizes = ["39","40","41","42"];
 function compareSizes(a,b){
-  const aSpecial = String(a).endsWith("*");
-  const bSpecial = String(b).endsWith("*");
-  const aNumber = Number(String(a).replace("*",""));
-  const bNumber = Number(String(b).replace("*",""));
+  const aSpecial = String(a).endsWith("*"), bSpecial = String(b).endsWith("*");
+  const aNumber = Number(String(a).replace("*","")), bNumber = Number(String(b).replace("*",""));
   if(aSpecial !== bSpecial) return aSpecial ? 1 : -1;
   return aNumber - bNumber;
 }
-$("applySizes").addEventListener("click",()=>{
-  const parsed = $("sizes").value.split(",").map(normalizeSize).filter(Boolean);
-  if(!parsed.length){alert("Escribe tallas válidas separadas por comas. Usa * para las especiales, por ejemplo: 39, 40, 41, 42, 40*, 41*.");return;}
-  sizes = [...new Set(parsed)].sort(compareSizes); renderSizeInputs();
+function renderSizePicker(){
+  const makeOptions = special => availableSizes.map(n=>{
+    const value = special ? `${n}*` : n;
+    const checked = selectedSizes.has(value) ? "checked" : "";
+    return `<label class="size-chip ${checked ? "is-selected" : ""}"><input type="checkbox" value="${value}" ${checked}><span>${value}</span></label>`;
+  }).join("");
+  $("normalSizeOptions").innerHTML = makeOptions(false);
+  $("specialSizeOptions").innerHTML = makeOptions(true);
+  document.querySelectorAll(".size-chip input").forEach(input=>{
+    input.addEventListener("change",()=>{
+      if(input.checked) selectedSizes.add(input.value); else selectedSizes.delete(input.value);
+      input.closest(".size-chip").classList.toggle("is-selected",input.checked);
+      $("selectedCount").textContent = `${selectedSizes.size} seleccionada${selectedSizes.size===1?"":"s"}`;
+    });
+  });
+  $("selectedCount").textContent = `${selectedSizes.size} seleccionada${selectedSizes.size===1?"":"s"}`;
+}
+function openSizePicker(){
+  selectedSizes = new Set(confirmedSizes);
+  renderSizePicker();
+  $("sizeModal").hidden = false;
+}
+function closeSizePicker(){ $("sizeModal").hidden = true; }
+$("openSizePicker").addEventListener("click", openSizePicker);
+$("closeSizePicker").addEventListener("click", closeSizePicker);
+$("cancelSizePicker").addEventListener("click", closeSizePicker);
+$("sizeModalBackdrop").addEventListener("click", closeSizePicker);
+$("confirmSizePicker").addEventListener("click",()=>{
+  if(!selectedSizes.size){alert("Selecciona al menos una talla para continuar.");return;}
+  confirmedSizes = [...selectedSizes].sort(compareSizes);
+  sizes = [...confirmedSizes];
+  $("sizes").value = confirmedSizes.join(", ");
+  renderSizeInputs();
+  closeSizePicker();
 });
 function save(){localStorage.setItem("krokicolProduccion",JSON.stringify(records));}
 function formatDate(date){const [year,month,day]=String(date).split("-");return `${day}/${month}/${year}`;}
@@ -90,4 +112,4 @@ $("exportExcel").addEventListener("click", async ()=>{
   const sum=wb.addWorksheet("Resumen",{views:[{showGridLines:false}]});sum.mergeCells("A1:D1");sum.getCell("A1").value="RESUMEN GENERAL DE PRODUCCIÓN";sum.getCell("A1").font={bold:true,size:15,color:{argb:"FFFFFFFF"}};sum.getCell("A1").fill={type:"pattern",pattern:"solid",fgColor:{argb:"FF1687B8"}};sum.addRow(["Producto",records[0].product||""]);sum.addRow(["Lote",records[0].lot||""]);sum.addRow([]);const hdr=sum.addRow(["TALLA","INY","BUENO","MALO"]);hdr.eachCell(q=>{q.font={bold:true,color:{argb:"FFFFFFFF"}};q.fill={type:"pattern",pattern:"solid",fgColor:{argb:"FF1687B8"}};});let totals=[0,0,0];allSizes.forEach(size=>{let a=0,b=0,d=0;records.forEach(rec=>{const v=rec.values[size]||{};a+=Number(v.int||0);b+=Number(v.good||0);d+=Number(v.bad||0);});totals[0]+=a;totals[1]+=b;totals[2]+=d;sum.addRow([size,a,b,d]);});const rr=sum.addRow(["TOTAL",...totals]);rr.eachCell(q=>{q.font={bold:true};q.fill={type:"pattern",pattern:"solid",fgColor:{argb:"FFD9EAD3"}};});sum.columns=[{width:22},{width:18},{width:18},{width:18}];
   const buffer=await wb.xlsx.writeBuffer();const blob=new Blob([buffer],{type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"});const url=URL.createObjectURL(blob);const a=document.createElement("a");a.href=url;a.download=`KROKICOL_Produccion_${(records[0].lot||"lote").replace(/[^a-z0-9_-]/gi,"_")}.xlsx`;a.click();URL.revokeObjectURL(url);
 });
-renderSizeInputs();renderRecords();
+$("sizes").value = confirmedSizes.join(", ");renderSizePicker();renderSizeInputs();renderRecords();

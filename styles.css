@@ -6,3 +6,43 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:Inter,Arial,sans
 @media(max-width:720px){.container{margin:25px auto;padding:0 13px}.panel{padding:18px}.form-grid{grid-template-columns:repeat(2,1fr)}.operator-head{display:block}.size-tools{width:100%;margin-top:13px}.intro{align-items:flex-start;gap:12px}.summary{min-width:95px;padding:10px}.export-row{align-items:stretch;flex-direction:column}.export{width:100%}.form-actions{flex-direction:column}.button{min-height:42px}.topbar{padding:0 16px}}
 
 #connectionStatus{font-size:.82em;opacity:.8;margin-left:.35rem}
+
+.size-picker{border:1px solid var(--line);background:#fbfdfb;border-radius:12px;padding:15px;margin:0 0 18px}
+.size-picker-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px}
+.size-picker-heading strong{font-size:13px;color:var(--ink)}
+.size-picker-heading .hint{margin:4px 0 0}
+.selected-count{font-size:11px;font-weight:800;color:var(--green2);background:#eaf2ed;border-radius:20px;padding:7px 10px;white-space:nowrap}
+.size-group{display:flex;align-items:flex-start;gap:14px;margin:12px 0}
+.size-group-label{font-size:11px;font-weight:800;color:#52615c;width:125px;flex-shrink:0;padding-top:8px}
+.size-options{display:flex;flex-wrap:wrap;gap:7px}
+.size-chip{position:relative;cursor:pointer}
+.size-chip input{position:absolute;opacity:0;width:1px;height:1px;pointer-events:none}
+.size-chip span{display:grid;place-items:center;min-width:42px;height:38px;padding:0 7px;border:1px solid #d8e2dc;border-radius:8px;background:#fff;color:#40504a;font-size:12px;font-weight:800;transition:.15s}
+.size-chip.is-selected span{background:var(--green);border-color:var(--green);color:#fff;box-shadow:0 2px 5px #123b3622}
+.size-chip input:focus-visible+span{outline:3px solid #c6df70;outline-offset:2px}
+.size-picker-actions{display:flex;justify-content:flex-end;margin-top:12px}
+@media(max-width:720px){.size-group{display:block}.size-group-label{display:block;width:auto;margin-bottom:8px}.size-picker-heading{align-items:flex-start}.size-chip span{min-width:39px;height:36px}.size-picker-actions .button{width:100%}}
+
+/* Selector de tallas con confirmación */
+.size-tools-picker{display:flex;align-items:flex-end;gap:12px;margin:14px 0 18px}
+.size-text-label{flex:1;min-width:0}
+.size-text-label input{width:100%;box-sizing:border-box;background:#f8faf8;cursor:default}
+.size-modal[hidden]{display:none!important}
+.size-modal{position:fixed;inset:0;z-index:9999;display:grid;place-items:center;padding:18px}
+.size-modal-backdrop{position:absolute;inset:0;background:rgba(10,28,25,.58)}
+.size-modal-panel{position:relative;z-index:1;width:min(720px,100%);max-height:min(88vh,760px);overflow:auto;background:#fff;border-radius:18px;padding:22px;box-shadow:0 20px 70px rgba(0,0,0,.24)}
+.size-modal-header{display:flex;justify-content:space-between;gap:16px;align-items:flex-start;margin-bottom:20px}
+.size-modal-header h3{margin:0 0 6px;font-size:20px;color:#1f2c29}
+.size-modal-header p{margin:0;color:#71807a;font-size:13px}
+.size-modal-close{border:0;background:#edf2ef;border-radius:50%;width:36px;height:36px;font-size:24px;cursor:pointer;color:#123b36}
+.size-modal-group{margin:18px 0}
+.size-modal-group>strong{display:block;margin-bottom:10px;font-size:13px;color:#52615c}
+.size-options{display:flex;flex-wrap:wrap;gap:8px}
+.size-chip{position:relative;cursor:pointer}
+.size-chip input{position:absolute;opacity:0;width:1px;height:1px;pointer-events:none}
+.size-chip span{display:grid;place-items:center;min-width:42px;height:40px;padding:0 8px;border:1px solid #d8e2dc;border-radius:8px;background:#fff;color:#40504a;font-size:13px;font-weight:800}
+.size-chip.is-selected span{background:#123b36;border-color:#123b36;color:#fff}
+.size-chip input:focus-visible+span{outline:3px solid #c6df70;outline-offset:2px}
+.size-modal-footer{display:flex;align-items:center;justify-content:space-between;gap:14px;border-top:1px solid #e5ebe7;padding-top:16px;margin-top:20px}
+.size-modal-buttons{display:flex;gap:8px}
+@media(max-width:600px){.size-tools-picker{align-items:stretch;flex-direction:column}.size-tools-picker button{width:100%}.size-modal{padding:8px}.size-modal-panel{padding:16px;max-height:94vh}.size-chip span{min-width:36px;height:36px}.size-modal-footer{align-items:stretch;flex-direction:column}.size-modal-buttons button{flex:1}}

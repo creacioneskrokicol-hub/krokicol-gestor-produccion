@@ -43,10 +43,30 @@
       <div class="section-heading"><div><span class="step">02</span><h2>Producción por operario</h2></div></div>
       <div class="operator-head">
         <label class="operator-name">Nombre del operario<input id="operator" placeholder="Nombre y apellido"></label>
-        <div class="size-tools">
-          <label>Tallas (separadas por coma)<input id="sizes" value="39,40,41,42" aria-label="Tallas"></label>
-          <button class="button secondary" id="applySizes" type="button">Aplicar tallas</button>
-        </div>
+      </div>
+      <div class="size-tools size-tools-picker">
+        <label class="size-text-label">Tallas seleccionadas
+          <input id="sizes" type="text" placeholder="Ej. 20, 21, 22, 40*, 41*" readonly>
+        </label>
+        <button class="button secondary" id="openSizePicker" type="button">Seleccionar tallas</button>
+      </div>
+      <div class="size-modal" id="sizeModal" hidden>
+        <div class="size-modal-backdrop" id="sizeModalBackdrop"></div>
+        <section class="size-modal-panel" role="dialog" aria-modal="true" aria-labelledby="sizeModalTitle">
+          <div class="size-modal-header">
+            <div><h3 id="sizeModalTitle">Selecciona las tallas</h3><p>Marca las tallas que necesitas. Las especiales llevan asterisco.</p></div>
+            <button class="size-modal-close" id="closeSizePicker" type="button" aria-label="Cerrar">×</button>
+          </div>
+          <div class="size-modal-group"><strong>Tallas normales</strong><div class="size-options" id="normalSizeOptions"></div></div>
+          <div class="size-modal-group"><strong>Tallas especiales (*)</strong><div class="size-options" id="specialSizeOptions"></div></div>
+          <div class="size-modal-footer">
+            <span class="selected-count" id="selectedCount">4 seleccionadas</span>
+            <div class="size-modal-buttons">
+              <button class="button secondary" id="cancelSizePicker" type="button">Cancelar</button>
+              <button class="button primary" id="confirmSizePicker" type="button">OK</button>
+            </div>
+          </div>
+        </section>
       </div>
       <div class="table-wrap">
         <table class="entry-table">

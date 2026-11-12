@@ -15,10 +15,27 @@ function updateGoods(){
     $("good-"+s).style.color = bad>total ? "#b04438" : "";
   });
 }
+function normalizeSize(value){
+  const raw = String(value).trim().replace(/\\s+/g,"");
+  const special = raw.endsWith("*");
+  const numberText = special ? raw.slice(0,-1) : raw;
+  if(!/^\\d+$/.test(numberText)) return null;
+  const number = Number(numberText);
+  if(!Number.isInteger(number) || number <= 0) return null;
+  return special ? `${number}*` : String(number);
+}
+function compareSizes(a,b){
+  const aSpecial = String(a).endsWith("*");
+  const bSpecial = String(b).endsWith("*");
+  const aNumber = Number(String(a).replace("*",""));
+  const bNumber = Number(String(b).replace("*",""));
+  if(aSpecial !== bSpecial) return aSpecial ? 1 : -1;
+  return aNumber - bNumber;
+}
 $("applySizes").addEventListener("click",()=>{
-  const parsed = $("sizes").value.split(",").map(x=>Number(x.trim())).filter(x=>Number.isInteger(x)&&x>0);
-  if(!parsed.length){alert("Escribe al menos una talla válida, separada por comas.");return;}
-  sizes = [...new Set(parsed)].sort((a,b)=>a-b); renderSizeInputs();
+  const parsed = $("sizes").value.split(",").map(normalizeSize).filter(Boolean);
+  if(!parsed.length){alert("Escribe tallas válidas separadas por comas. Usa * para las especiales, por ejemplo: 39, 40, 41, 42, 40*, 41*.");return;}
+  sizes = [...new Set(parsed)].sort(compareSizes); renderSizeInputs();
 });
 function save(){localStorage.setItem("krokicolProduccion",JSON.stringify(records));}
 function formatDate(date){const [year,month,day]=String(date).split("-");return `${day}/${month}/${year}`;}
@@ -50,7 +67,7 @@ $("clearAll").addEventListener("click",()=>{if(confirm("¿Eliminar todos los reg
 $("exportExcel").addEventListener("click", async ()=>{
   if(!records.length){alert("Primero agrega al menos un registro.");return;}
   if(typeof ExcelJS==="undefined"){alert("No se pudo cargar ExcelJS. Revisa tu conexión a internet.");return;}
-  const allSizes=[...new Set(records.flatMap(r=>r.sizes||Object.keys(r.values).map(Number)))].sort((a,b)=>a-b);
+  const allSizes=[...new Set(records.flatMap(r=>r.sizes||Object.keys(r.values)))].sort(compareSizes);
   const wb=new ExcelJS.Workbook();wb.creator="KROKICOL";wb.subject="Control de producción";
   const ws=wb.addWorksheet("Producción",{views:[{state:"frozen",xSplit:5,ySplit:4,showGridLines:false}]});
   const lastCol=5+allSizes.length*3+3;

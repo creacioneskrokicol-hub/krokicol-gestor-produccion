@@ -52,6 +52,8 @@ onAuthStateChanged(auth, user => {
   $("authScreen").hidden = !!user;
   $("homeScreen").hidden = !user;
   $("productionView").hidden = true;
+  $("lineView").hidden = true;
+
   if (!user) { records = []; renderRecords(); return; }
   $("userEmail").textContent = user.email || "Usuario autorizado";
   unsubscribeRecords = onSnapshot(query(recordsCollection, orderBy("createdAt", "desc")), snapshot => {
@@ -193,3 +195,191 @@ $("exportExcel").addEventListener("click", async ()=>{
   const buffer=await wb.xlsx.writeBuffer();const blob=new Blob([buffer],{type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"});const url=URL.createObjectURL(blob);const a=document.createElement("a");a.href=url;a.download=`KROKICOL_Produccion_${(records[0].lot||"lote").replace(/[^a-z0-9_-]/gi,"_")}.xlsx`;a.click();URL.revokeObjectURL(url);
 });
 $("sizes").value = confirmedSizes.join(", ");renderSizePicker();renderSizeInputs();renderRecords();
+
+
+
+/* =================================
+   MODULO LINEA - FORMATO M15 PG
+================================= */
+
+const lineColors = [
+  "Negro Rojo",
+  "Negro Verde",
+  "Azul Rojo",
+  "Azul Verde"
+];
+
+const lineSizes = ["39", "40", "41", "42", "43", "44"];
+
+// Actualizar el nombre de la referencia seleccionada
+function updateLineReferenceDisplay() {
+  const reference = $("lineReference")?.value || "M15 PG";
+
+  if ($("lineReferenceTitle")) {
+    $("lineReferenceTitle").textContent = reference;
+  }
+
+  if ($("lineFormatName")) {
+    $("lineFormatName").textContent = reference;
+  }
+}
+
+// Escuchar cambios en el selector
+$("lineReference")?.addEventListener("change", updateLineReferenceDisplay);
+
+// Mostrar la referencia inicial
+updateLineReferenceDisplay();
+
+function renderLineTable() {
+  const container = $("lineTableContainer");
+  if (!container) return;
+
+  let html = `
+    <div class="line-table-wrap">
+      <table class="line-table">
+        <thead>
+          <tr>
+            <th rowspan="2">Color</th>
+            ${lineSizes.map(size => `<th colspan="3">Talla ${size}</th>`).join("")}
+            <th rowspan="2">Total color</th>
+          </tr>
+          <tr>
+            ${lineSizes.map(() => `
+              <th>Cantidad 1</th>
+              <th>Cantidad 2</th>
+              <th>Total</th>
+            `).join("")}
+          </tr>
+        </thead>
+        <tbody>
+  `;
+
+  lineColors.forEach((color, colorIndex) => {
+    html += `<tr><th>${color}</th>`;
+
+    lineSizes.forEach((size, sizeIndex) => {
+      html += `
+        <td>
+          <input type="number" min="0" step="1"
+            data-color="${colorIndex}"
+            data-size="${sizeIndex}"
+            data-slot="1"
+            value="0">
+        </td>
+        <td>
+          <input type="number" min="0" step="1"
+            data-color="${colorIndex}"
+            data-size="${sizeIndex}"
+            data-slot="2"
+            value="0">
+        </td>
+        <td class="line-total" id="lineCellTotal-${colorIndex}-${sizeIndex}">0</td>
+      `;
+    });
+
+    html += `<td class="line-total" id="lineColorTotal-${colorIndex}">0</td></tr>`;
+  });
+
+  html += `
+        </tbody>
+        <tfoot>
+          <tr>
+            <th>Total por talla</th>
+            ${lineSizes.map((size, sizeIndex) => `
+              <td colspan="3" class="line-total" id="lineSizeTotal-${sizeIndex}">0</td>
+            `).join("")}
+            <td class="line-total" id="lineTableTotal">0</td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+  `;
+
+  container.innerHTML = html;
+  updateLineTotals();
+}
+
+function updateLineTotals() {
+  let grandTotal = 0;
+  const sizeTotals = Array(6).fill(0);
+
+  lineColors.forEach((color, colorIndex) => {
+    let colorTotal = 0;
+
+    lineSizes.forEach((size, sizeIndex) => {
+      const inputs = document.querySelectorAll(
+        `#lineTableContainer input[data-color="${colorIndex}"][data-size="${sizeIndex}"]`
+      );
+
+      const first = Number(inputs[0]?.value || 0);
+      const second = Number(inputs[1]?.value || 0);
+      const total = first + second;
+
+      const cell = $(`lineCellTotal-${colorIndex}-${sizeIndex}`);
+      if (cell) cell.textContent = total;
+
+      colorTotal += total;
+      sizeTotals[sizeIndex] += total;
+    });
+
+    const colorCell = $(`lineColorTotal-${colorIndex}`);
+    if (colorCell) colorCell.textContent = colorTotal;
+
+    grandTotal += colorTotal;
+  });
+
+  sizeTotals.forEach((total, index) => {
+    const cell = $(`lineSizeTotal-${index}`);
+    if (cell) cell.textContent = total;
+  });
+
+  if ($("lineTableTotal")) $("lineTableTotal").textContent = grandTotal;
+  if ($("lineGrandTotal")) $("lineGrandTotal").textContent = grandTotal;
+}
+
+// Actualizar cálculos al escribir cantidades
+$("lineTableContainer")?.addEventListener("input", event => {
+  if (event.target.matches("input[type='number']")) {
+    updateLineTotals();
+  }
+});
+
+function updateLineLotPrefix() {
+  const dateValue = $("lineDate")?.value;
+  const prefix = $("lineLotPrefix");
+  const sequence = $("lineLotSequence");
+
+  if (!dateValue || !prefix || !sequence) return;
+
+  const [year, month] = dateValue.split("-");
+
+  prefix.textContent = year.slice(-2) + month;
+
+  if (sequence.dataset.year !== year) {
+    sequence.value = year === "2026" ? "155" : "001";
+    sequence.dataset.year = year;
+  }
+}
+
+// Abrir módulo Línea
+$("openLine")?.addEventListener("click", () => {
+  $("homeScreen").hidden = true;
+  $("productionView").hidden = true;
+  $("lineView").hidden = false;
+  renderLineTable();
+
+  if ($("lineDate")) {
+  if (!$("lineDate").value) {
+    $("lineDate").value = new Date().toISOString().slice(0, 10);
+  }
+
+  updateLineLotPrefix();
+  $("lineDate").onchange = updateLineLotPrefix;
+}
+});
+
+// Regresar al menú principal
+$("backLineHome")?.addEventListener("click", () => {
+  $("lineView").hidden = true;
+  $("homeScreen").hidden = false;
+});

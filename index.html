@@ -41,7 +41,7 @@
         <small>Registro de producción</small>
         <span class="module-status">Disponible</span>
       </button>
-      <button class="module-card" type="button" disabled>
+      <button class="module-card" type="button" id="openLine">
         <span class="module-icon">⌁</span>
         <strong>Línea</strong>
         <small>Formato de línea</small>
@@ -153,6 +153,89 @@
   </main>
   <footer>KROKICOL · Herramienta interna de apoyo a producción <span id="connectionStatus" aria-live="polite">· Comprobando conexión…</span></footer>
   </div>
+
+
+<div id="lineView" hidden>
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-mark">K</span>
+      <div><strong>KROKICOL</strong></div>
+    </div>
+    <div class="topbar-actions">
+      <button class="back-home" id="backLineHome" type="button">← Menú principal</button>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="panel">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">REGISTRO INDUSTRIAL</p>
+          <h1>Línea de producción</h1>
+          <p class="muted">Referencia: <span id="lineReferenceTitle">M15 PG</span></p>
+        </div>
+      </div>
+
+      <div class="summary">
+        <span>Formato de captura</span>
+        <strong id="lineFormatName">M15 PG</strong>
+      </div>
+</section>
+
+<section class="panel">
+  <h2>Seleccionar referencia</h2>
+  <div class="form-grid">
+    <label>
+      Referencia de producción
+      <select id="lineReference">
+        <option value="M15 PG">M15 PG</option>
+      </select>
+    </label>
+  </div>
+</section>
+
+<section class="panel">
+  <h2>Datos del lote</h2>
+      <div class="form-grid">
+        <label>Fecha
+          <input type="date" id="lineDate">
+        </label>
+        <label>Número de lote
+  <div class="lot-number-field">
+    <span id="lineLotPrefix">2611</span>
+    <input
+      type="number"
+      id="lineLotSequence"
+      value="155"
+      min="1"
+      max="999"
+      placeholder="155"
+    >
+  </div>
+</label>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="section-heading">
+        <div>
+          <h2>Registro de cantidades</h2>
+          <p class="muted">Ingresa dos cantidades por cada talla y color.</p>
+        </div>
+      </div>
+
+      <div id="lineTableContainer"></div>
+
+      <div class="summary">
+        <span>Total general de pares</span>
+        <strong id="lineGrandTotal">0</strong>
+      </div>
+    </section>
+  </main>
+</div>
+
+
+
   <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
   <script>
     if ("serviceWorker" in navigator) {

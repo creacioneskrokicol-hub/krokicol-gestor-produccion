@@ -12,9 +12,64 @@
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+
+  <main class="auth-screen" id="authScreen">
+    <section class="auth-card">
+      <div class="brand-mark auth-mark">K</div>
+      <p class="eyebrow">KROKICOL · ACCESO INTERNO</p>
+      <h1>Iniciar sesión</h1>
+      <p class="muted">Ingresa con tu correo y contraseña autorizados.</p>
+      <form id="loginForm" class="auth-form">
+        <label>Correo electrónico<input id="loginEmail" type="email" autocomplete="username" required placeholder="nombre@empresa.com"></label>
+        <label>Contraseña<input id="loginPassword" type="password" autocomplete="current-password" required placeholder="Tu contraseña"></label>
+        <button class="button primary" id="loginButton" type="submit">Ingresar</button>
+        <p id="loginMessage" class="auth-message" role="alert"></p>
+      </form>
+    </section>
+  </main>
+
+  <main class="home-screen" id="homeScreen" hidden>
+    <section class="home-intro">
+      <p class="eyebrow">GESTOR INTERNO</p>
+      <h1>Control de producción</h1>
+      <p class="muted">Selecciona el formato que deseas utilizar.</p>
+    </section>
+    <section class="module-grid" aria-label="Formatos de trabajo">
+      <button class="module-card module-active" id="openProduction" type="button">
+        <span class="module-icon">▦</span>
+        <strong>Producción</strong>
+        <small>Registro de producción</small>
+        <span class="module-status">Disponible</span>
+      </button>
+      <button class="module-card" type="button" disabled>
+        <span class="module-icon">⌁</span>
+        <strong>Línea</strong>
+        <small>Formato de línea</small>
+        <span class="module-status">Próximamente</span>
+      </button>
+      <button class="module-card" type="button" disabled>
+        <span class="module-icon">▤</span>
+        <strong>Suela</strong>
+        <small>Formato por definir</small>
+        <span class="module-status">Próximamente</span>
+      </button>
+      <button class="module-card" type="button" disabled>
+        <span class="module-icon">⇢</span>
+        <strong>Despacho</strong>
+        <small>Control de despachos</small>
+        <span class="module-status">Próximamente</span>
+      </button>
+    </section>
+    <p class="home-note">KROKICOL · Herramienta interna de apoyo a producción</p>
+  </main>
+
+  <div id="productionView" hidden>
   <header class="topbar">
     <div class="brand"><span class="brand-mark">K</span><div><strong>KROKICOL</strong><small>CONTROL DE PRODUCCIÓN</small></div></div>
-    <span class="pilot">VERSIÓN PILOTO</span>
+    <div class="topbar-actions">
+      <button class="back-home" id="backHome" type="button">← Menú principal</button>
+      <span class="pilot" id="userEmail"></span><button class="back-home" id="logoutButton" type="button">Cerrar sesión</button>
+    </div>
   </header>
 
   <main class="container">
@@ -93,10 +148,11 @@
         <div><strong>Un solo archivo para toda la producción</strong><small>Se exportan todos los turnos, colores y operarios registrados.</small></div>
         <button class="button export" id="exportExcel" type="button">⇩ Descargar Excel (.xlsx)</button>
       </div>
-      <p class="footnote">Piloto: los datos se guardan en este navegador. Descarga el Excel como respaldo antes de cerrar o cambiar de dispositivo.</p>
+      <p class="footnote">Los registros se guardan en la nube y están disponibles para los usuarios autorizados.</p>
     </section>
   </main>
   <footer>KROKICOL · Herramienta interna de apoyo a producción <span id="connectionStatus" aria-live="polite">· Comprobando conexión…</span></footer>
+  </div>
   <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
   <script>
     if ("serviceWorker" in navigator) {
@@ -110,7 +166,19 @@
     window.addEventListener("offline", showConnection);
     showConnection();
   </script>
-  <script src="app.js"></script>
+  <script type="module" src="app.js"></script>
+  <script>
+    document.getElementById("openProduction").addEventListener("click", () => {
+      document.getElementById("homeScreen").hidden = true;
+      document.getElementById("productionView").hidden = false;
+      window.scrollTo(0, 0);
+    });
+    document.getElementById("backHome").addEventListener("click", () => {
+      document.getElementById("productionView").hidden = true;
+      document.getElementById("homeScreen").hidden = false;
+      window.scrollTo(0, 0);
+    });
+  </script>
 
   <datalist id="quantityOptions">
     <option value="0"></option>

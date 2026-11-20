@@ -1,0 +1,29 @@
+KROKICOL - GESTOR DE PRODUCCION
+Paquete preparado para GitHub Pages
+
+CONTENIDO
+- index.html, styles.css, app.js
+- manifest.webmanifest
+- service-worker.js
+- icons/
+
+ANTES DE PUBLICAR
+1. Conserva una copia de la versión actualmente publicada.
+2. Sube el CONTENIDO de esta carpeta a la raíz del repositorio correcto:
+   krokicol-gestor-produccion
+3. No lo subas al repositorio Kroki-App (catálogo).
+4. Espera a que GitHub Pages termine de desplegar y prueba la URL pública.
+5. No compartas contraseñas ni archivos que contengan credenciales de acceso.
+
+FIREBASE
+La aplicación utiliza Firebase Authentication y Cloud Firestore.
+La configuración web de Firebase está incluida en app.js. Las reglas de Firestore
+se administran desde Firebase Console; no se publican mediante GitHub Pages.
+
+IMPORTANTE SOBRE EL MODO SIN CONEXION
+El service worker almacena la estructura y archivos estáticos de la aplicación.
+El inicio de sesión y la lectura/escritura de registros en Firestore requieren
+conexión a internet. No se debe interpretar el modo offline como sincronización
+local de registros.
+
+Este paquete no modifica por sí solo GitHub ni Firebase.

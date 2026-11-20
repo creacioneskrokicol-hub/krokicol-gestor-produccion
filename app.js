@@ -1,7 +1,69 @@
+import { initializeApp } from "https://www.gstatic.com/firebasejs/13.4.0/firebase-app.js";
+import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/13.4.0/firebase-auth.js";
+import { getFirestore, collection, addDoc, deleteDoc, doc, onSnapshot, query, orderBy, serverTimestamp, writeBatch, getDocs } from "https://www.gstatic.com/firebasejs/13.4.0/firebase-firestore.js";
+
 const $ = id => document.getElementById(id);
+const firebaseConfig = {
+  apiKey: "AIzaSyCPFKeVPFpsFSdvnK6fjjhWfo8H949lon0",
+  authDomain: "krokicol-gestor-produccion.firebaseapp.com",
+  projectId: "krokicol-gestor-produccion",
+  storageBucket: "krokicol-gestor-produccion.firebasestorage.app",
+  messagingSenderId: "1076212200191",
+  appId: "1:1076212200191:web:6c0b0b1ef071af136f52ca"
+};
+const firebaseApp = initializeApp(firebaseConfig);
+const auth = getAuth(firebaseApp);
+const db = getFirestore(firebaseApp);
+const recordsCollection = collection(db, "productionRecords");
+let unsubscribeRecords = null;
 let sizes = ["39","40","41","42"];
-let records = JSON.parse(localStorage.getItem("krokicolProduccion") || "[]");
+let records = [];
 $("date").value = new Date().toISOString().slice(0,10);
+
+// Acceso: la base de datos solo se consulta después de autenticar al usuario.
+$("loginForm").addEventListener("submit", async event => {
+  event.preventDefault();
+  const button = $("loginButton");
+  $("loginMessage").textContent = "";
+  button.disabled = true;
+  button.textContent = "Ingresando…";
+  try {
+    await signInWithEmailAndPassword(auth, $("loginEmail").value.trim(), $("loginPassword").value);
+  } catch (error) {
+    const messages = {
+      "auth/invalid-credential": "El correo o la contraseña no son correctos.",
+      "auth/user-not-found": "No existe un usuario con ese correo.",
+      "auth/wrong-password": "La contraseña no es correcta.",
+      "auth/too-many-requests": "Demasiados intentos. Espera un momento y vuelve a intentarlo."
+    };
+    $("loginMessage").textContent = messages[error.code] || "No se pudo iniciar sesión. Verifica los datos y tu conexión.";
+  } finally {
+    button.disabled = false;
+    button.textContent = "Ingresar";
+  }
+});
+
+$("logoutButton").addEventListener("click", async () => {
+  if (confirm("¿Quieres cerrar tu sesión?")) await signOut(auth);
+});
+
+onAuthStateChanged(auth, user => {
+  if (unsubscribeRecords) { unsubscribeRecords(); unsubscribeRecords = null; }
+  $("authScreen").hidden = !!user;
+  $("homeScreen").hidden = !user;
+  $("productionView").hidden = true;
+  if (!user) { records = []; renderRecords(); return; }
+  $("userEmail").textContent = user.email || "Usuario autorizado";
+  unsubscribeRecords = onSnapshot(query(recordsCollection, orderBy("createdAt", "desc")), snapshot => {
+    records = snapshot.docs.map(item => ({ id: item.id, ...item.data() }));
+    renderRecords();
+    const status = $("connectionStatus");
+    if (status) status.textContent = "· Datos sincronizados";
+  }, error => {
+    console.error("Error al sincronizar producción:", error);
+    alert("No se pudieron cargar los registros. Revisa las reglas de Firestore y tu conexión.");
+  });
+});
 
 function renderSizeInputs(){
   $("sizeInputs").innerHTML = sizes.map(s=>`<tr><td>${s}</td><td><input type="number" min="0" max="100" step="1" list="quantityOptions" class="int" data-size="${s}" placeholder="0"></td><td><input type="number" min="0" max="100" step="1" list="quantityOptions" class="bad" data-size="${s}" placeholder="0"></td><td class="good-cell" id="good-${s}">0</td></tr>`).join("");
@@ -59,16 +121,20 @@ $("confirmSizePicker").addEventListener("click",()=>{
   renderSizeInputs();
   closeSizePicker();
 });
-function save(){localStorage.setItem("krokicolProduccion",JSON.stringify(records));}
 function formatDate(date){const [year,month,day]=String(date).split("-");return `${day}/${month}/${year}`;}
 function renderRecords(){
   $("countRows").textContent=records.length;
   $("recordsHead").innerHTML=`<tr><th>Fecha</th><th>Turno</th><th>Color</th><th>Operario</th>${sizes.map(s=>`<th>${s} INT</th><th>${s} BUENO</th><th>${s} MALO</th>`).join("")}<th>Acción</th></tr>`;
   $("recordsBody").innerHTML=records.length?records.map((r,i)=>`<tr><td>${formatDate(r.date)}</td><td>${r.shift}</td><td>${escapeHtml(r.color)}</td><td>${escapeHtml(r.operator)}</td>${sizes.map(s=>`<td>${r.values[s]?.int??""}</td><td>${r.values[s]?.good??""}</td><td>${r.values[s]?.bad??""}</td>`).join("")}<td><button class="text-button" data-delete="${i}">Eliminar</button></td></tr>`).join(""):`<tr><td class="empty" colspan="${5+sizes.length*3}">Todavía no hay registros. Agrega el primer operario.</td></tr>`;
-  document.querySelectorAll("[data-delete]").forEach(b=>b.addEventListener("click",()=>{records.splice(Number(b.dataset.delete),1);save();renderRecords();}));
+  document.querySelectorAll("[data-delete]").forEach(b=>b.addEventListener("click",async()=>{
+    const record = records[Number(b.dataset.delete)];
+    if (!record?.id || !confirm("¿Eliminar este registro de producción?")) return;
+    try { await deleteDoc(doc(db, "productionRecords", record.id)); }
+    catch (error) { console.error(error); alert("No se pudo eliminar el registro. Inténtalo de nuevo."); }
+  }));
 }
 function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
-$("addRecord").addEventListener("click",()=>{
+$("addRecord").addEventListener("click",async()=>{
   const operator=$("operator").value.trim(), color=$("color").value.trim(), date=$("date").value;
   if(!operator||!color||!date){alert("Completa fecha, color y nombre del operario.");return;}
   const values={}; let hasData=false, invalid=false;
@@ -81,11 +147,25 @@ $("addRecord").addEventListener("click",()=>{
   });
   if(!hasData){alert("Ingresa al menos una cantidad de inyectadas.");return;}
   if(invalid){alert("La cantidad de malas no puede ser mayor que las inyectadas.");return;}
-  records.push({product:$("product").value.trim(),lot:$("lot").value.trim(),date,shift:$("shift").value,color,operator,values,sizes:[...sizes]});
-  save();renderRecords();$("operator").value="";document.querySelectorAll(".int,.bad").forEach(e=>e.value="");updateGoods();$("operator").focus();
+  const newRecord = {product:$("product").value.trim(),lot:$("lot").value.trim(),date,shift:$("shift").value,color,operator,values,sizes:[...sizes],createdAt:serverTimestamp()};
+  const addButton = $("addRecord");
+  addButton.disabled = true;
+  try {
+    await addDoc(recordsCollection, newRecord);
+    $("operator").value="";document.querySelectorAll(".int,.bad").forEach(e=>e.value="");updateGoods();$("operator").focus();
+  } catch (error) { console.error(error); alert("No se pudo guardar en la nube. Verifica tu conexión y las reglas de Firestore."); }
+  finally { addButton.disabled = false; }
 });
 $("clearInputs").addEventListener("click",()=>{$("operator").value="";document.querySelectorAll(".int,.bad").forEach(e=>e.value="");updateGoods();});
-$("clearAll").addEventListener("click",()=>{if(confirm("¿Eliminar todos los registros guardados en este navegador?")){records=[];save();renderRecords();}});
+$("clearAll").addEventListener("click",async()=>{
+  if (!records.length || !confirm("¿Eliminar TODOS los registros compartidos de producción? Esta acción afecta a todos los usuarios y no se puede deshacer.")) return;
+  try {
+    const snapshot = await getDocs(recordsCollection);
+    const batch = writeBatch(db);
+    snapshot.docs.forEach(item => batch.delete(item.ref));
+    await batch.commit();
+  } catch (error) { console.error(error); alert("No se pudieron eliminar todos los registros. Inténtalo de nuevo."); }
+});
 $("exportExcel").addEventListener("click", async ()=>{
   if(!records.length){alert("Primero agrega al menos un registro.");return;}
   if(typeof ExcelJS==="undefined"){alert("No se pudo cargar ExcelJS. Revisa tu conexión a internet.");return;}

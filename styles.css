@@ -140,7 +140,7 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:Inter,Arial,sans
 }
 
 #lineView .line-table th {
-  background: #f3f6f5;
+  background: #fff;
   font-size: 12px;
 }
 
@@ -189,29 +189,6 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:Inter,Arial,sans
   background-color: #ffffff !important;
 }
 
-/* Talla 40: gris suave */
-#lineView .line-table tbody tr > td:nth-child(n+5):nth-child(-n+7),
-#lineView .line-table thead tr:first-child th:nth-child(3),
-#lineView .line-table thead tr:last-child th:nth-child(n+4):nth-child(-n+6),
-#lineView .line-table tfoot td:nth-child(2) {
-  background-color: #f0f4f2 !important;
-}
-
-/* Talla 42: gris suave */
-#lineView .line-table tbody tr > td:nth-child(n+11):nth-child(-n+13),
-#lineView .line-table thead tr:first-child th:nth-child(5),
-#lineView .line-table thead tr:last-child th:nth-child(n+10):nth-child(-n+12),
-#lineView .line-table tfoot td:nth-child(4) {
-  background-color: #f0f4f2 !important;
-}
-
-/* Talla 44: gris suave */
-#lineView .line-table tbody tr > td:nth-child(n+17):nth-child(-n+19),
-#lineView .line-table thead tr:first-child th:nth-child(7),
-#lineView .line-table thead tr:last-child th:nth-child(n+16):nth-child(-n+18),
-#lineView .line-table tfoot td:nth-child(6) {
-  background-color: #f0f4f2 !important;
-}
 
 /* Campos de cantidades siempre blancos */
 #lineView .line-table input {
@@ -219,13 +196,24 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:Inter,Arial,sans
 }
 
 /* Separación horizontal debajo de encabezados */
-#lineView .line-table thead {
+/* Líneas delgadas en el encabezado */
+#lineView .injection-table thead {
+  border-bottom: 1px solid #d5dfdb;
+}
+
+/* Líneas delgadas entre las filas */
+#lineView .injection-table tbody tr {
+  border-bottom: 1px solid #d5dfdb;
+}
+
+/* Línea gruesa únicamente al terminar cada color */
+#lineView .injection-table tbody tr:nth-child(4n) {
   border-bottom: 3px solid #829b93;
 }
 
-/* Separación horizontal entre colores */
-#lineView .line-table tbody tr {
-  border-bottom: 3px solid #829b93;
+/* Línea gruesa al inicio de cada sección de color */
+#lineView .injection-table tbody tr:nth-child(4n+1) {
+  border-top: 3px solid #829b93;
 }
 
 /* Nombre de cada color */
@@ -240,14 +228,6 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:Inter,Arial,sans
   border-right: 2px solid #d5dfdb;
 }
 
-/* Colores de los totales alineados con cada talla */
-#lineView .line-table tfoot td:nth-child(even) {
-  background-color: #ffffff !important;
-}
-
-#lineView .line-table tfoot td:nth-child(odd) {
-  background-color: #f0f4f2 !important;
-}
 
 /* Número de lote: prefijo fijo + consecutivo editable */
 #lineView .lot-number-field {
@@ -278,3 +258,177 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:Inter,Arial,sans
   background: transparent;
 }
 
+/* Diferenciar pares buenos y averiados */
+.injection-table .injection-bad-total,
+.injection-table [id^="injectionBadColor-"],
+.injection-table [id^="injectionBadSize-"] {
+  color: #c43d43;
+  font-weight: 800;
+}
+
+.injection-table [id^="injectionGood"],
+.injection-table #injectionGrandGood {
+  color: #16735f;
+  font-weight: 800;
+}
+
+.injection-bad-number {
+  color: #d13b43 !important;
+  font-weight: 800;
+}
+
+
+/* Separación entre el formato 1 y el formato 2 */
+#lineView .line-sheet-divider {
+  margin-top: 40px;
+}
+
+
+/* Tabla de programación */
+#lineView .programming-section {
+  margin-bottom: 28px;
+}
+
+#lineView .programming-section h2 {
+  margin-bottom: 14px;
+}
+
+#lineView .programming-table {
+  width: 100%;
+  min-width: 650px;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+#lineView .programming-table th,
+#lineView .programming-table td {
+  border: 1px solid var(--line);
+  padding: 12px;
+  text-align: center;
+}
+
+#lineView .programming-table th {
+  background: #fff;
+  font-weight: 700;
+}
+
+#lineView .programming-table td input {
+  width: 100%;
+  min-height: 42px;
+  text-align: center;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  font-size: 16px;
+  box-sizing: border-box;
+}
+
+#lineView .line-program-label,
+#lineView .line-programmed {
+  color: #1769c2 !important;
+  font-weight: 700;
+}
+
+#lineView .line-program-label {
+  font-size: 12px;
+  text-align: center;
+}
+
+/* Separación de bloques por color - Hoja 1 */
+
+/* Línea gruesa encima de Programadas */
+#lineView #lineTableContainer .line-table tbody tr:nth-child(odd) > * {
+  border-top: 3px solid #829b93 !important;
+}
+
+/* Línea gruesa debajo de la fila del color */
+#lineView #lineTableContainer .line-table tbody tr:nth-child(even) > * {
+  border-bottom: 3px solid #829b93 !important;
+}
+
+
+/* Todas las tablas del módulo Línea en blanco */
+#lineView .line-table th,
+#lineView .line-table td,
+#lineView .programming-table th,
+#lineView .programming-table td {
+  background: #fff !important;
+}
+
+/* Hoja 1 - separadores gruesos entre tallas */
+#lineView #lineTableContainer .line-table thead tr:first-child th {
+  border-right: 2px solid #829b93 !important;
+}
+
+#lineView #lineTableContainer .line-table thead tr:last-child th:nth-child(3n) {
+  border-right: 2px solid #829b93 !important;
+}
+
+/* Filas de cantidades */
+#lineView #lineTableContainer .line-table tbody tr:nth-child(even) td:nth-child(4),
+#lineView #lineTableContainer .line-table tbody tr:nth-child(even) td:nth-child(7),
+#lineView #lineTableContainer .line-table tbody tr:nth-child(even) td:nth-child(10),
+#lineView #lineTableContainer .line-table tbody tr:nth-child(even) td:nth-child(13),
+#lineView #lineTableContainer .line-table tbody tr:nth-child(even) td:nth-child(16),
+#lineView #lineTableContainer .line-table tbody tr:nth-child(even) td:nth-child(19) {
+  border-right: 2px solid #829b93 !important;
+}
+
+/* Filas de Programadas */
+#lineView #lineTableContainer .line-table tbody tr:nth-child(odd) td {
+  border-right: 2px solid #829b93 !important;
+}
+
+/* Hoja 1: completar separadores verticales de las tallas */
+
+/* Separar Color de Talla 39 */
+#lineView #lineTableContainer .line-table tr > :first-child {
+  border-right: 2px solid #829b93 !important;
+}
+
+/* Encabezados de tallas */
+#lineView #lineTableContainer .line-table thead th {
+  border-right: 2px solid #829b93 !important;
+}
+
+/* Fila Programadas */
+#lineView #lineTableContainer .line-table tbody tr:nth-child(odd) td {
+  border-right: 2px solid #829b93 !important;
+}
+
+/* Filas de cantidades: separar después de cada Total */
+#lineView #lineTableContainer .line-table tbody tr:nth-child(even) td:nth-child(3n) {
+  border-right: 2px solid #829b93 !important;
+}
+
+/* Fila inferior de totales */
+#lineView #lineTableContainer .line-table tfoot td {
+  border-right: 2px solid #829b93 !important;
+}
+
+/* Separadores verticales - Hoja 2 */
+#lineView .injection-table th,
+#lineView .injection-table td {
+  border-right: 2px solid #829b93 !important;
+}
+
+/* Separador final de la tabla */
+#lineView .injection-table th:last-child,
+#lineView .injection-table td:last-child {
+  border-right: 0 !important;
+}
+
+/* Separadores entre colores - Hoja 3 */
+#lineSummaryTableContainer .injection-table tbody tr:nth-child(2n):not(:last-child) > * {
+  border-bottom: 3px solid #829b93 !important;
+}
+
+/* Separador de la celda de color */
+#lineSummaryTableContainer .injection-table tbody tr:nth-child(2n+1) > th[rowspan="2"] {
+  border-bottom: 3px solid #829b93 !important;
+}
+
+
+.grand-result.bad {
+  color: #dc3545;
+}

@@ -238,24 +238,51 @@ function renderLineTable() {
     <div class="line-table-wrap">
       <table class="line-table">
         <thead>
-          <tr>
-            <th rowspan="2">Color</th>
-            ${lineSizes.map(size => `<th colspan="3">Talla ${size}</th>`).join("")}
-            <th rowspan="2">Total color</th>
-          </tr>
-          <tr>
-            ${lineSizes.map(() => `
-              <th>Cantidad 1</th>
-              <th>Cantidad 2</th>
-              <th>Total</th>
-            `).join("")}
-          </tr>
+        
+            <tr>
+  <th rowspan="2" class="line-color-header">Color</th>
+  ${lineSizes.map((size, sizeIndex) => `
+    <th colspan="3" class="line-size-${sizeIndex}">Talla ${size}</th>
+  `).join("")}
+  <th rowspan="2">Total color</th>
+</tr>
+<tr>
+  ${lineSizes.map((size, sizeIndex) => `
+    <th class="line-size-${sizeIndex}">Cantidad 1</th>
+    <th class="line-size-${sizeIndex}">Cantidad 2</th>
+    <th class="line-size-${sizeIndex}">Total</th>
+  `).join("")}
+</tr>
+          
         </thead>
         <tbody>
   `;
 
   lineColors.forEach((color, colorIndex) => {
-    html += `<tr><th>${color}</th>`;
+    
+const programIds = [
+  "programBlackRed",
+  "programBlackGreen",
+  "programBlueRed",
+  "programBlueGreen"
+];
+
+const programValue = Number($(programIds[colorIndex])?.value || 0);
+
+html += `
+  <tr>
+    <th class="line-program-label">Programadas</th>
+    ${lineSizes.map((size, sizeIndex) => `
+  <td class="line-programmed line-size-${sizeIndex}"
+    colspan="3"
+    data-program-color="${colorIndex}">${programValue}</td>
+`).join("")}
+    <td></td>
+  </tr>
+  <tr>
+    <th class="line-color-header">${color}</th>
+`;
+
 
     lineSizes.forEach((size, sizeIndex) => {
       html += `
@@ -295,9 +322,341 @@ function renderLineTable() {
     </div>
   `;
 
-  container.innerHTML = html;
-  updateLineTotals();
+container.innerHTML = html;
+renderLineInjectionTable();
+renderLineSummaryTable();
+updateLineProgrammedValues();
+updateLineTotals();
 }
+
+
+
+function renderLineInjectionTable() {
+  const container = $("lineInjectionTableContainer");
+  if (!container) return;
+
+  let html = `
+    <div class="line-table-wrap">
+      <table class="line-table injection-table">
+        <thead>
+          <tr>
+            <th>Color</th>
+            <th>Concepto</th>
+            ${lineSizes.map((size, sizeIndex) => `<th class="line-size-${sizeIndex}">Talla ${size}</th>`).join("")}
+            <th>Totales</th>
+          </tr>
+        </thead>
+        <tbody>
+  `;
+
+  lineColors.forEach((color, colorIndex) => {
+    // Fila Programadas
+html += `
+  <tr>
+    <th rowspan="4">${color}</th>
+    <th class="line-program-label">Programadas</th>
+`;
+
+lineSizes.forEach((size, sizeIndex) => {
+  html += `
+    <td class="line-size-${sizeIndex} line-programmed"
+        id="injectionProgrammed-${colorIndex}-${sizeIndex}">0</td>
+  `;
+});
+
+html += `<td class="line-total">—</td></tr>`;
+
+
+    // Fila Total
+    html += `<tr><th>Inyectadas</th>`;
+
+    lineSizes.forEach((size, sizeIndex) => {
+      html += `
+        <td class="line-total line-size-${sizeIndex}"
+          id="injectionTotal-${colorIndex}-${sizeIndex}">0</td>
+      `;
+    });
+
+    html += `<td class="line-total">—</td></tr>`;
+
+    // Fila Averiado
+    html += `<tr><th>Averiado</th>`;
+
+    lineSizes.forEach((size, sizeIndex) => {
+      html += `
+        <td class="line-size-${sizeIndex}">
+          <input type="number" min="0" step="1" value="0"
+            data-injection="bad"
+            data-color="${colorIndex}"
+            data-size="${sizeIndex}">
+        </td>
+      `;
+    });
+
+   html += `<td class="line-total injection-bad-number" id="injectionBadColor-${colorIndex}">0</td></tr>`;
+
+    // Fila Buenos y totales del color
+    html += `<tr><th>Buenos</th>`;
+
+    lineSizes.forEach((size, sizeIndex) => {
+      html += `
+        <td class="line-total line-size-${sizeIndex}"
+    id="injectionGood-${colorIndex}-${sizeIndex}">0</td>
+      `;
+    });
+
+    html += `
+  <td class="line-total" id="injectionGoodColor-${colorIndex}">0</td>
+</tr>
+
+    `;
+  });
+
+  html += `
+        </tbody>
+        <tfoot>
+          <tr>
+            <th colspan="2">Totales por talla</th>
+
+            ${lineSizes.map((size, sizeIndex) => `
+  <td class="line-total injection-summary line-size-${sizeIndex}">
+    <div>
+      <span id="injectionGoodSize-${sizeIndex}">0</span>
+    </div>
+    <div>
+      <span id="injectionBadSize-${sizeIndex}" class="injection-bad-number">0</span>
+    </div>
+  </td>
+`).join("")}
+
+            <td class="line-total injection-grand-total">
+  <div class="grand-result good">
+    Total Buenos <strong id="injectionGrandGood">0</strong>
+  </div>
+  <div class="grand-result bad">
+    Total Averiados <strong id="injectionGrandBad">0</strong>
+  </div>
+</td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+  `;
+
+  container.innerHTML = html;
+  updateLineInjectionTotals();
+}
+
+function renderLineSummaryTable() {
+  const container = $("lineSummaryTableContainer");
+  if (!container) return;
+
+  let html = `
+    <div class="line-table-wrap">
+      <table class="line-table injection-table">
+        <thead>
+          <tr>
+            <th>Color</th>
+            <th>Concepto</th>
+            ${lineSizes.map((size, sizeIndex) =>
+              `<th class="line-size-${sizeIndex}">Talla ${size}</th>`
+            ).join("")}
+            <th>Totales</th>
+          </tr>
+        </thead>
+        <tbody>
+  `;
+
+  lineColors.forEach((color, colorIndex) => {
+    html += `
+      <tr>
+        <th rowspan="2">${color}</th>
+        <th class="line-program-label">Programadas</th>
+    `;
+
+    lineSizes.forEach((size, sizeIndex) => {
+      html += `
+        <td class="line-programmed line-size-${sizeIndex}"
+            id="summaryProgrammed-${colorIndex}-${sizeIndex}">0</td>
+      `;
+    });
+
+    html += `<td class="line-total">—</td></tr>`;
+    html += `<tr><th>Total</th>`;
+
+    lineSizes.forEach((size, sizeIndex) => {
+      html += `
+        <td class="line-total line-size-${sizeIndex}"
+            id="summaryTotal-${colorIndex}-${sizeIndex}">0</td>
+      `;
+    });
+
+    html += `
+      <td class="line-total"
+          id="summaryGoodColor-${colorIndex}">0</td>
+      </tr>
+    `;
+  });
+
+  html += `
+        </tbody>
+        <tfoot>
+          <tr>
+            <th colspan="2">Totales por talla</th>
+            ${lineSizes.map((size, sizeIndex) => `
+              <td class="line-total line-size-${sizeIndex}"
+                  id="summaryGoodSize-${sizeIndex}">0</td>
+            `).join("")}
+            <td class="line-total" id="summaryGrandGood">0</td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+  `;
+
+  container.innerHTML = html;
+}
+
+function updateLineProgrammedValues() {
+  const programIds = [
+    "programBlackRed",
+    "programBlackGreen",
+    "programBlueRed",
+    "programBlueGreen"
+  ];
+
+  lineColors.forEach((color, colorIndex) => {
+    const value = Number($(programIds[colorIndex])?.value || 0);
+
+    document.querySelectorAll(
+      `#lineTableContainer [data-program-color="${colorIndex}"]`
+    ).forEach(cell => {
+      cell.textContent = value;
+    });
+
+    lineSizes.forEach((size, sizeIndex) => {
+  const cell = $(`injectionProgrammed-${colorIndex}-${sizeIndex}`);
+  if (cell) cell.textContent = value;
+
+  const summaryCell = $(`summaryProgrammed-${colorIndex}-${sizeIndex}`);
+  if (summaryCell) summaryCell.textContent = value;
+});
+  });
+}
+
+[
+  "programBlackRed",
+  "programBlackGreen",
+  "programBlueRed",
+  "programBlueGreen"
+].forEach(id => {
+  $(id)?.addEventListener("input", updateLineProgrammedValues);
+});
+
+
+// Calcular producción, averiados y pares buenos
+function updateLineInjectionTotals() {
+  let grandGood = 0;
+  const goodSizeTotals = Array(6).fill(0);
+  const badSizeTotals = Array(6).fill(0);
+
+  lineColors.forEach((color, colorIndex) => {
+    let goodColorTotal = 0;
+    let badColorTotal = 0;
+
+    lineSizes.forEach((size, sizeIndex) => {
+      const productionCell = $(
+        `lineCellTotal-${colorIndex}-${sizeIndex}`
+      );
+
+      const produced = Number(productionCell?.textContent || 0);
+
+      const badInput = document.querySelector(
+        `#lineInjectionTableContainer input[data-injection="bad"][data-color="${colorIndex}"][data-size="${sizeIndex}"]`
+      );
+
+      // Evitar que los averiados superen la producción
+if (badInput) {
+  badInput.min = 0;
+  badInput.max = produced;
+
+  let enteredBad = Math.max(
+    0,
+    Math.floor(Number(badInput.value || 0))
+  );
+
+  if (enteredBad > produced) {
+    enteredBad = produced;
+    badInput.value = produced;
+  }
+}
+
+const bad = Math.min(
+  produced,
+  Math.max(0, Math.floor(Number(badInput?.value || 0)))
+);
+
+      const good = produced - bad;
+
+      const summaryCell = $(`summaryTotal-${colorIndex}-${sizeIndex}`);
+if (summaryCell) summaryCell.textContent = good;
+
+      const totalCell = $(`injectionTotal-${colorIndex}-${sizeIndex}`);
+      const goodCell = $(`injectionGood-${colorIndex}-${sizeIndex}`);
+
+      if (totalCell) totalCell.textContent = produced;
+      if (goodCell) goodCell.textContent = good;
+
+      goodColorTotal += good;
+      badColorTotal += bad;
+
+      goodSizeTotals[sizeIndex] += good;
+      badSizeTotals[sizeIndex] += bad;
+    });
+
+    const goodColorCell = $(`injectionGoodColor-${colorIndex}`);
+    const badColorCell = $(`injectionBadColor-${colorIndex}`);
+    const summaryColorCell = $(`summaryGoodColor-${colorIndex}`);
+if (summaryColorCell) summaryColorCell.textContent = goodColorTotal;
+
+    if (goodColorCell) goodColorCell.textContent = goodColorTotal;
+    if (badColorCell) badColorCell.textContent = badColorTotal;
+
+    grandGood += goodColorTotal;
+  });
+
+  goodSizeTotals.forEach((total, index) => {
+  const cell = $(`injectionGoodSize-${index}`);
+  if (cell) cell.textContent = total;
+
+  const summaryCell = $(`summaryGoodSize-${index}`);
+  if (summaryCell) summaryCell.textContent = total;
+});
+
+  badSizeTotals.forEach((total, index) => {
+    const cell = $(`injectionBadSize-${index}`);
+    if (cell) cell.textContent = total;
+  });
+
+  const grandCell = $("injectionGrandGood");
+  if (grandCell) grandCell.textContent = grandGood;
+
+  const grandBad = badSizeTotals.reduce((sum, total) => sum + total, 0);
+const badGrandCell = $("injectionGrandBad");
+if (badGrandCell) badGrandCell.textContent = grandBad;
+
+  const summaryGrandCell = $("summaryGrandGood");
+if (summaryGrandCell) summaryGrandCell.textContent = grandGood;
+}
+
+
+// Actualizar cuando el supervisor escriba averiados
+$("lineInjectionTableContainer")?.addEventListener("input", event => {
+  if (event.target.matches('input[data-injection="bad"]')) {
+    updateLineInjectionTotals();
+  }
+});
+
 
 function updateLineTotals() {
   let grandTotal = 0;
@@ -335,6 +694,7 @@ function updateLineTotals() {
 
   if ($("lineTableTotal")) $("lineTableTotal").textContent = grandTotal;
   if ($("lineGrandTotal")) $("lineGrandTotal").textContent = grandTotal;
+  updateLineInjectionTotals();
 }
 
 // Actualizar cálculos al escribir cantidades
@@ -366,7 +726,9 @@ $("openLine")?.addEventListener("click", () => {
   $("homeScreen").hidden = true;
   $("productionView").hidden = true;
   $("lineView").hidden = false;
+  if (!$("lineTableContainer").innerHTML.trim()) {
   renderLineTable();
+}
 
   if ($("lineDate")) {
   if (!$("lineDate").value) {

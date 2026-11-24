@@ -217,14 +217,63 @@
     </section>
 
     <section class="panel">
+
+
+<div class="programming-section">
+  <h2>Programación</h2>
+
+  <div class="line-table-wrap">
+    <table class="programming-table">
+      <tbody>
+        <tr>
+          <th>Color</th>
+          <th>Negro Rojo</th>
+          <th>Negro Verde</th>
+          <th>Azul Rojo</th>
+          <th>Azul Verde</th>
+        </tr>
+        <tr>
+          <th>Programación</th>
+          <td><input type="number" id="programBlackRed" min="0" step="1" value="0"></td>
+          <td><input type="number" id="programBlackGreen" min="0" step="1" value="0"></td>
+          <td><input type="number" id="programBlueRed" min="0" step="1" value="0"></td>
+          <td><input type="number" id="programBlueGreen" min="0" step="1" value="0"></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+
+
       <div class="section-heading">
         <div>
-          <h2>Registro de cantidades</h2>
+          <h2>Hoja 1 - Registro de cantidades</h2>
           <p class="muted">Ingresa dos cantidades por cada talla y color.</p>
         </div>
       </div>
 
       <div id="lineTableContainer"></div>
+
+      <div class="line-sheet-divider">
+  <h2>Hoja 2 · Control de inyección</h2>
+  <p class="muted">
+    Registra las unidades inyectadas y averiadas. Los totales y pares buenos
+    se calculan automáticamente.
+  </p>
+</div>
+
+<div id="lineInjectionTableContainer"></div>
+
+<div class="line-sheet-divider">
+  <h2>Hoja 3 · Resumen de producción</h2>
+  <p class="muted">
+    Consulta el total de unidades buenas de cada color y talla.
+  </p>
+</div>
+
+<div id="lineSummaryTableContainer"></div>
+
 
       <div class="summary">
         <span>Total general de pares</span>
@@ -250,18 +299,45 @@
     showConnection();
   </script>
   <script type="module" src="app.js"></script>
-  <script>
-    document.getElementById("openProduction").addEventListener("click", () => {
-      document.getElementById("homeScreen").hidden = true;
-      document.getElementById("productionView").hidden = false;
-      window.scrollTo(0, 0);
-    });
-    document.getElementById("backHome").addEventListener("click", () => {
-      document.getElementById("productionView").hidden = true;
-      document.getElementById("homeScreen").hidden = false;
-      window.scrollTo(0, 0);
-    });
-  </script>
+  
+<script>
+  const homeScreen = document.getElementById("homeScreen");
+  const productionView = document.getElementById("productionView");
+  const lineView = document.getElementById("lineView");
+
+  function showHome() {
+    productionView.hidden = true;
+    lineView.hidden = true;
+    homeScreen.hidden = false;
+
+    history.replaceState({ screen: "home" }, "", location.pathname + location.search);
+    window.scrollTo(0, 0);
+  }
+
+  document.getElementById("openProduction").addEventListener("click", () => {
+    history.pushState({ screen: "production" }, "", "#production");
+
+    homeScreen.hidden = true;
+    productionView.hidden = false;
+    window.scrollTo(0, 0);
+  });
+
+  document.getElementById("backHome").addEventListener("click", showHome);
+
+  document.getElementById("openLine").addEventListener("click", () => {
+    history.pushState({ screen: "line" }, "", "#line");
+  });
+
+  document.getElementById("backLineHome").addEventListener("click", showHome);
+
+  window.addEventListener("popstate", () => {
+    productionView.hidden = true;
+    lineView.hidden = true;
+    homeScreen.hidden = false;
+    window.scrollTo(0, 0);
+  });
+</script>
+
 
   <datalist id="quantityOptions">
     <option value="0"></option>

@@ -103,7 +103,8 @@
         <label class="size-text-label">Tallas seleccionadas
           <input id="sizes" type="text" placeholder="Ej. 20, 21, 22, 40*, 41*" readonly>
         </label>
-        <button class="button secondary" id="openSizePicker" type="button">Seleccionar tallas</button>
+        <button class="button secondary" id="openSizePicker" type="button">
+          Seleccionar tallas</button>
       </div>
       <div class="size-modal" id="sizeModal" hidden>
         <div class="size-modal-backdrop" id="sizeModalBackdrop"></div>
@@ -167,32 +168,24 @@
   </header>
 
   <main class="container">
-    <section class="panel">
-      <div class="section-heading">
-        <div>
-          <p class="eyebrow">REGISTRO INDUSTRIAL</p>
-          <h1>Línea de producción</h1>
-          <p class="muted">Referencia: <span id="lineReferenceTitle">M15 PG</span></p>
-        </div>
-      </div>
-
-      <div class="summary">
-        <span>Formato de captura</span>
-        <strong id="lineFormatName">M15 PG</strong>
-      </div>
-</section>
-
+    
 <section class="panel">
-  <h2>Seleccionar referencia</h2>
-  <div class="form-grid">
-    <label>
-      Referencia de producción
-      <select id="lineReference">
-        <option value="M15 PG">M15 PG</option>
-      </select>
-    </label>
+  <div class="section-heading">
+    <div>
+      <h1>Registro de Producción</h1>
+    </div>
+  </div>
+
+  <div class="summary">
+    <label for="lineManualReference">Referencia</label>
+    <input
+      type="text"
+      id="lineManualReference"
+      placeholder="Escribe la referencia"
+    >
   </div>
 </section>
+
 
 <section class="panel">
   <h2>Datos del lote</h2>
@@ -217,38 +210,110 @@
     </section>
 
     <section class="panel">
+  <h2>Programación</h2>
+  
 
+<div class="size-tools-picker">
+  <label class="size-text-label" for="lineSizes">
+    Tallas seleccionadas
+  </label>
+
+  <div class="size-picker-controls">
+    <input
+      id="lineSizes"
+      type="text"
+      placeholder="Selecciona las tallas"
+      readonly
+    >
+
+    <button
+      class="button secondary"
+      id="openLineSizePicker"
+      type="button"
+    >
+      Seleccionar tallas
+    </button>
+  </div>
+</div>
+
+<div class="size-modal" id="lineSizeModal" hidden>
+  <div class="size-modal-backdrop" id="lineSizeModalBackdrop"></div>
+
+  <section class="size-modal-panel" role="dialog" aria-modal="true">
+    <div class="size-modal-header">
+      <div>
+        <h3>Seleccionar tallas</h3>
+        <p>Selecciona las tallas que necesitas. Puedes repetirlas.</p>
+      </div>
+      <button class="size-modal-close" id="closeLineSizePicker" type="button">×</button>
+    </div>
+
+    <div class="size-modal-group">
+
+      <div class="size-modal-group">
+  <h4>Tallas normales</h4>
+  <div class="size-options" id="lineNormalSizes"></div>
+</div>
+
+<div class="size-modal-group">
+  <h4>Tallas especiales (*)</h4>
+  <div class="size-options" id="lineSpecialSizes"></div>
+</div>
+
+<div class="line-selected-sizes" id="lineSelectedSizes"></div>
+
+    </div>
+
+    <div class="size-modal-footer">
+      <span id="lineSelectedCount">0 seleccionadas</span>
+      <div class="size-modal-buttons">
+        <button class="button secondary" id="cancelLineSizePicker" type="button">Cancelar</button>
+        <button class="button primary" id="confirmLineSizePicker" type="button">OK</button>
+      </div>
+    </div>
+  </section>
+</div>
 
 <div class="programming-section">
-  <h2>Programación</h2>
+  <h2>Seleccionar Color</h2>
 
   <div class="line-table-wrap">
     <table class="programming-table">
       <tbody>
         <tr>
-          <th>Color</th>
-          <th>Negro Rojo</th>
-          <th>Negro Verde</th>
-          <th>Azul Rojo</th>
-          <th>Azul Verde</th>
-        </tr>
+  <th>Color</th>
+  <th><input type="text" id="lineColor0" value="Negro Rojo"></th>
+  <th><input type="text" id="lineColor1" value="Negro Verde"></th>
+  <th><input type="text" id="lineColor2" value="Azul Rojo"></th>
+  <th><input type="text" id="lineColor3" value="Azul Verde"></th>
+</tr>
         <tr>
-          <th>Programación</th>
-          <td><input type="number" id="programBlackRed" min="0" step="1" value="0"></td>
-          <td><input type="number" id="programBlackGreen" min="0" step="1" value="0"></td>
-          <td><input type="number" id="programBlueRed" min="0" step="1" value="0"></td>
-          <td><input type="number" id="programBlueGreen" min="0" step="1" value="0"></td>
-        </tr>
+  <th>Programación</th>
+  <td><input type="number" id="lineProgram0" min="0" step="1" value="0"></td>
+  <td><input type="number" id="lineProgram1" min="0" step="1" value="0"></td>
+  <td><input type="number" id="lineProgram2" min="0" step="1" value="0"></td>
+  <td><input type="number" id="lineProgram3" min="0" step="1" value="0"></td>
+</tr>
       </tbody>
     </table>
   </div>
+  <div class="add-color-container">
+    <button type="button" class="button secondary" id="addLineColor">
+        + Agregar color
+    </button>
 </div>
+</div>
+
+</section>
+
+    <section class="panel">
+
 
 
 
       <div class="section-heading">
         <div>
-          <h2>Hoja 1 - Registro de cantidades</h2>
+          <h2>Hoja 1 - Planta <span class="line-title-reference"></span> - <span class="line-title-lot"></span></h2>
           <p class="muted">Ingresa dos cantidades por cada talla y color.</p>
         </div>
       </div>
@@ -256,7 +321,7 @@
       <div id="lineTableContainer"></div>
 
       <div class="line-sheet-divider">
-  <h2>Hoja 2 · Control de inyección</h2>
+  <h2>Hoja 2 - Línea <span class="line-title-reference"></span> - <span class="line-title-lot"></span></h2>
   <p class="muted">
     Registra las unidades inyectadas y averiadas. Los totales y pares buenos
     se calculan automáticamente.
@@ -266,7 +331,7 @@
 <div id="lineInjectionTableContainer"></div>
 
 <div class="line-sheet-divider">
-  <h2>Hoja 3 · Resumen de producción</h2>
+  <h2>Hoja 3 - Empaque <span class="line-title-reference"></span> - <span class="line-title-lot"></span></h2>
   <p class="muted">
     Consulta el total de unidades buenas de cada color y talla.
   </p>
@@ -276,9 +341,20 @@
 
 
       <div class="summary">
-        <span>Total general de pares</span>
-        <strong id="lineGrandTotal">0</strong>
-      </div>
+  <span>Total general de pares</span>
+  <strong id="lineGrandTotal">0</strong>
+</div>
+
+<div class="export-row">
+  <div>
+    <strong>Exportar producción</strong>
+    <small>Descarga Planta, Línea y Empaque en un solo archivo.</small>
+  </div>
+  <button class="button export" id="exportLineExcel" type="button">
+    ⇩ Descargar Excel (.xlsx)
+  </button>
+</div>
+
     </section>
   </main>
 </div>

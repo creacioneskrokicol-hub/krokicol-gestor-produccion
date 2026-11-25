@@ -88,6 +88,8 @@ function compareSizes(a,b){
   if(aSpecial !== bSpecial) return aSpecial ? 1 : -1;
   return aNumber - bNumber;
 }
+
+
 function renderSizePicker(){
   const makeOptions = special => availableSizes.map(n=>{
     const value = special ? `${n}*` : n;
@@ -105,6 +107,7 @@ function renderSizePicker(){
   });
   $("selectedCount").textContent = `${selectedSizes.size} seleccionada${selectedSizes.size===1?"":"s"}`;
 }
+
 function openSizePicker(){
   selectedSizes = new Set(confirmedSizes);
   renderSizePicker();
@@ -202,14 +205,145 @@ $("sizes").value = confirmedSizes.join(", ");renderSizePicker();renderSizeInputs
    MODULO LINEA - FORMATO M15 PG
 ================================= */
 
-const lineColors = [
-  "Negro Rojo",
-  "Negro Verde",
-  "Azul Rojo",
-  "Azul Verde"
+let lineColors = [
+  $("lineColor0")?.value || "Negro Rojo",
+  $("lineColor1")?.value || "Negro Verde",
+  $("lineColor2")?.value || "Azul Rojo",
+  $("lineColor3")?.value || "Azul Verde"
 ];
 
-const lineSizes = ["39", "40", "41", "42", "43", "44"];
+let lineSizes = [];
+
+// =====================================
+// SELECTOR DE TALLAS DEL MODULO LINEA
+// =====================================
+
+let draftLineSizes = [];
+
+const lineSizeModal = $("lineSizeModal");
+const lineSizeOptions = $("lineSizeOptions");
+const lineSelectedSizes = $("lineSelectedSizes");
+const lineSizesInput = $("lineSizes");
+
+
+function renderLineSizePicker() {
+  const normalContainer = $("lineNormalSizes");
+  const specialContainer = $("lineSpecialSizes");
+  const selectedContainer = $("lineSelectedSizes");
+
+  if (!normalContainer || !specialContainer || !selectedContainer) return;
+
+  normalContainer.innerHTML = "";
+  specialContainer.innerHTML = "";
+  selectedContainer.innerHTML = "";
+
+  // Crear tallas normales y especiales
+  for (let size = 20; size <= 45; size++) {
+    [
+      { value: String(size), container: normalContainer },
+      { value: `${size}*`, container: specialContainer }
+    ].forEach(({ value, container }) => {
+      const button = document.createElement("button");
+
+      button.type = "button";
+      button.className = "size-option";
+      button.textContent = value;
+
+      if (draftLineSizes.includes(value)) {
+        button.classList.add("selected");
+      }
+
+      button.addEventListener("click", () => {
+  draftLineSizes.push(value);
+
+  draftLineSizes.sort((a, b) => {
+    const specialA = a.endsWith("*");
+    const specialB = b.endsWith("*");
+
+    if (specialA !== specialB) {
+      return specialA ? 1 : -1;
+    }
+
+    return parseInt(a) - parseInt(b);
+  });
+
+  renderLineSizePicker();
+});
+
+      container.appendChild(button);
+    });
+  }
+
+  // Mostrar selecciones individuales
+  draftLineSizes.forEach((size, index) => {
+    const chip = document.createElement("button");
+
+    chip.type = "button";
+    chip.className = "line-size-chip";
+    chip.textContent = `${size} ×`;
+
+    chip.addEventListener("click", () => {
+      draftLineSizes.splice(index, 1);
+      renderLineSizePicker();
+    });
+
+    selectedContainer.appendChild(chip);
+  });
+
+  const counter = $("lineSelectedCount");
+
+  if (counter) {
+    counter.textContent = `${draftLineSizes.length} seleccionadas`;
+  }
+}
+
+
+// Abrir ventana
+$("openLineSizePicker")?.addEventListener("click", () => {
+  draftLineSizes = [...lineSizes];
+  renderLineSizePicker();
+  lineSizeModal.hidden = false;
+});
+
+// Cerrar sin guardar cambios
+function closeLineSizePicker() {
+  lineSizeModal.hidden = true;
+}
+
+$("closeLineSizePicker")?.addEventListener(
+  "click",
+  closeLineSizePicker
+);
+
+$("cancelLineSizePicker")?.addEventListener(
+  "click",
+  closeLineSizePicker
+);
+
+$("lineSizeModalBackdrop")?.addEventListener(
+  "click",
+  closeLineSizePicker
+);
+
+// Confirmar selección
+$("confirmLineSizePicker")?.addEventListener("click", () => {
+  if (draftLineSizes.length === 0) {
+    alert("Selecciona al menos una talla.");
+    return;
+  }
+
+  lineSizes = [...draftLineSizes];
+
+  if (lineSizesInput) {
+    lineSizesInput.value = lineSizes.join(", ");
+  }
+
+  closeLineSizePicker();
+
+  // Actualizar las tres hojas de Línea
+  renderLineTable();
+});
+
 
 // Actualizar el nombre de la referencia seleccionada
 function updateLineReferenceDisplay() {
@@ -224,8 +358,205 @@ function updateLineReferenceDisplay() {
   }
 }
 
+function updateLineSheetTitles() {
+  const reference = $("lineManualReference")?.value.trim() || "";
+  const prefix = $("lineLotPrefix")?.textContent.trim() || "";
+  const sequence = $("lineLotSequence")?.value || "";
+
+  const lot = prefix + String(sequence).padStart(3, "0");
+
+  document.querySelectorAll(".line-title-reference").forEach(element => {
+    element.textContent = reference;
+  });
+
+  document.querySelectorAll(".line-title-lot").forEach(element => {
+    element.textContent = lot;
+  });
+}
+
+$("lineManualReference")?.addEventListener("input", updateLineSheetTitles);
+$("lineLotSequence")?.addEventListener("input", updateLineSheetTitles);
+
+updateLineSheetTitles();
+
 // Escuchar cambios en el selector
 $("lineReference")?.addEventListener("change", updateLineReferenceDisplay);
+
+// Actualizar los nombres de los colores
+function updateLineColors() {
+  lineColors.forEach((color, index) => {
+    const input = $(`lineColor${index}`);
+
+    if (input) {
+      lineColors[index] = input.value.trim() || `Color ${index + 1}`;
+    }
+  });
+
+  renderLineTable();
+}
+
+// Escuchar cambios en los campos de color
+[0, 1, 2, 3].forEach(index => {
+  $(`lineColor${index}`)?.addEventListener("input", updateLineColors);
+});
+
+// Agregar un nuevo color en el módulo Línea
+// Botón para eliminar cualquier color
+
+function addLineColorRemoveButton(colorHeader) {
+  const removeButton = document.createElement("button");
+
+  removeButton.type = "button";
+  removeButton.textContent = "×";
+  removeButton.title = "Eliminar color";
+  removeButton.style.marginLeft = "6px";
+
+  removeButton.addEventListener("click", () => {
+    const tableBody = document.querySelector(".programming-table tbody");
+
+    const colorIndex = Array.from(colorHeader.parentElement.children)
+      .indexOf(colorHeader) - 1;
+
+    if (lineColors.length <= 1) {
+      alert("Debe quedar al menos un color.");
+      return;
+    }
+
+    // Guardar cantidades antes de eliminar
+    const productionData = Array.from(
+      document.querySelectorAll("#lineTableContainer input[data-color]")
+    ).map(input => ({
+      color: Number(input.dataset.color),
+      size: input.dataset.size,
+      slot: input.dataset.slot,
+      value: input.value
+    }));
+
+    // Guardar averiados antes de eliminar
+    const badData = Array.from(
+      document.querySelectorAll(
+        '#lineInjectionTableContainer input[data-injection="bad"]'
+      )
+    ).map(input => ({
+      color: Number(input.dataset.color),
+      size: input.dataset.size,
+      value: input.value
+    }));
+
+    lineColors[colorIndex] =
+      colorHeader.querySelector("input").value.trim() ||
+      `Color ${colorIndex + 1}`;
+
+    tableBody.rows[0].deleteCell(colorIndex + 1);
+    tableBody.rows[1].deleteCell(colorIndex + 1);
+
+    lineColors.splice(colorIndex, 1);
+
+    // Reorganizar identificadores de programación
+    lineColors.forEach((color, index) => {
+      const colorInput = tableBody.rows[0].cells[index + 1]
+        .querySelector("input");
+
+      const programInput = tableBody.rows[1].cells[index + 1]
+        .querySelector("input");
+
+      colorInput.id = `lineColor${index}`;
+      programInput.id = `lineProgram${index}`;
+    });
+
+    // Reconstruir las tres hojas
+    renderLineTable();
+
+    // Recuperar cantidades de los colores restantes
+    productionData.forEach(data => {
+      if (data.color === colorIndex) return;
+
+      const newColorIndex =
+        data.color > colorIndex ? data.color - 1 : data.color;
+
+      const input = document.querySelector(
+        `#lineTableContainer input[data-color="${newColorIndex}"][data-size="${data.size}"][data-slot="${data.slot}"]`
+      );
+
+      if (input) input.value = data.value;
+    });
+
+    // Recuperar averiados de los colores restantes
+    badData.forEach(data => {
+      if (data.color === colorIndex) return;
+
+      const newColorIndex =
+        data.color > colorIndex ? data.color - 1 : data.color;
+
+      const input = document.querySelector(
+        `#lineInjectionTableContainer input[data-injection="bad"][data-color="${newColorIndex}"][data-size="${data.size}"]`
+      );
+
+      if (input) input.value = data.value;
+    });
+
+    // Actualizar todos los cálculos
+    updateLineTotals();
+  });
+
+  colorHeader.appendChild(removeButton);
+}
+
+
+// Agregar botones a los cuatro colores iniciales
+const initialColorHeaders = document.querySelectorAll(
+  ".programming-table tbody tr:first-child th"
+);
+
+Array.from(initialColorHeaders).slice(1).forEach(header => {
+  addLineColorRemoveButton(header);
+});
+
+// Agregar un nuevo color
+$("addLineColor")?.addEventListener("click", () => {
+  const tableBody = document.querySelector(".programming-table tbody");
+
+  if (!tableBody) return;
+
+  const colorIndex = lineColors.length;
+  const colorName = `Color ${colorIndex + 1}`;
+
+  // Campo del nombre
+  const colorHeader = document.createElement("th");
+  const colorInput = document.createElement("input");
+
+  colorInput.type = "text";
+  colorInput.id = `lineColor${colorIndex}`;
+  colorInput.value = colorName;
+
+  colorHeader.appendChild(colorInput);
+  addLineColorRemoveButton(colorHeader);
+
+  tableBody.rows[0].appendChild(colorHeader);
+
+  // Campo de programación
+  const programCell = document.createElement("td");
+  const programInput = document.createElement("input");
+
+  programInput.type = "number";
+  programInput.id = `lineProgram${colorIndex}`;
+  programInput.min = "0";
+  programInput.step = "1";
+  programInput.value = "0";
+
+  programInput.addEventListener("input", () => {
+    renderLineTable();
+  });
+
+  programCell.appendChild(programInput);
+  tableBody.rows[1].appendChild(programCell);
+
+  lineColors.push(colorName);
+
+  colorInput.addEventListener("input", updateLineColors);
+
+  renderLineTable();
+});
 
 // Mostrar la referencia inicial
 updateLineReferenceDisplay();
@@ -260,14 +591,8 @@ function renderLineTable() {
 
   lineColors.forEach((color, colorIndex) => {
     
-const programIds = [
-  "programBlackRed",
-  "programBlackGreen",
-  "programBlueRed",
-  "programBlueGreen"
-];
-
-const programValue = Number($(programIds[colorIndex])?.value || 0);
+const programInputId = `lineProgram${colorIndex}`;
+const programValue = Number($(programInputId)?.value || 0);
 
 html += `
   <tr>
@@ -517,16 +842,11 @@ function renderLineSummaryTable() {
   container.innerHTML = html;
 }
 
-function updateLineProgrammedValues() {
-  const programIds = [
-    "programBlackRed",
-    "programBlackGreen",
-    "programBlueRed",
-    "programBlueGreen"
-  ];
 
+function updateLineProgrammedValues() {
   lineColors.forEach((color, colorIndex) => {
-    const value = Number($(programIds[colorIndex])?.value || 0);
+  const programInputId = `lineProgram${colorIndex}`;
+    const value = Number($(programInputId)?.value || 0);
 
     document.querySelectorAll(
       `#lineTableContainer [data-program-color="${colorIndex}"]`
@@ -535,30 +855,29 @@ function updateLineProgrammedValues() {
     });
 
     lineSizes.forEach((size, sizeIndex) => {
-  const cell = $(`injectionProgrammed-${colorIndex}-${sizeIndex}`);
-  if (cell) cell.textContent = value;
+      const cell = $(`injectionProgrammed-${colorIndex}-${sizeIndex}`);
+      if (cell) cell.textContent = value;
 
-  const summaryCell = $(`summaryProgrammed-${colorIndex}-${sizeIndex}`);
-  if (summaryCell) summaryCell.textContent = value;
-});
+      const summaryCell = $(`summaryProgrammed-${colorIndex}-${sizeIndex}`);
+      if (summaryCell) summaryCell.textContent = value;
+    });
   });
 }
 
-[
-  "programBlackRed",
-  "programBlackGreen",
-  "programBlueRed",
-  "programBlueGreen"
-].forEach(id => {
-  $(id)?.addEventListener("input", updateLineProgrammedValues);
+
+lineColors.forEach((color, colorIndex) => {
+  $(`lineProgram${colorIndex}`)?.addEventListener(
+    "input",
+    updateLineProgrammedValues
+  );
 });
 
 
 // Calcular producción, averiados y pares buenos
 function updateLineInjectionTotals() {
   let grandGood = 0;
-  const goodSizeTotals = Array(6).fill(0);
-  const badSizeTotals = Array(6).fill(0);
+  const goodSizeTotals = Array(lineSizes.length).fill(0);
+const badSizeTotals = Array(lineSizes.length).fill(0);
 
   lineColors.forEach((color, colorIndex) => {
     let goodColorTotal = 0;
@@ -660,7 +979,7 @@ $("lineInjectionTableContainer")?.addEventListener("input", event => {
 
 function updateLineTotals() {
   let grandTotal = 0;
-  const sizeTotals = Array(6).fill(0);
+  const sizeTotals = Array(lineSizes.length).fill(0);
 
   lineColors.forEach((color, colorIndex) => {
     let colorTotal = 0;
@@ -745,3 +1064,433 @@ $("backLineHome")?.addEventListener("click", () => {
   $("lineView").hidden = true;
   $("homeScreen").hidden = false;
 });
+
+// =====================================
+// EXPORTAR EXCEL DEL MÓDULO LÍNEA
+// =====================================
+
+
+$("exportLineExcel")?.addEventListener("click", exportLineExcel);
+
+async function exportLineExcel() {
+  if (typeof ExcelJS === "undefined") {
+    alert("No se pudo cargar ExcelJS. Revisa tu conexión a internet.");
+    return;
+  }
+
+  const reference = $("lineManualReference")?.value.trim() || "Sin referencia";
+  const prefix = $("lineLotPrefix")?.textContent.trim() || "";
+  const sequence = $("lineLotSequence")?.value || "001";
+  const lot = prefix + String(sequence).padStart(3, "0");
+
+  if (!lineSizes.length || !lineColors.length) {
+    alert("Primero selecciona las tallas y los colores.");
+    return;
+  }
+
+  const button = $("exportLineExcel");
+  if (button) button.disabled = true;
+
+  try {
+    const wb = new ExcelJS.Workbook();
+    wb.creator = "KROKICOL";
+    wb.subject = "Control de producción - Línea";
+
+    const border = {
+      top: { style: "thin", color: { argb: "FF9BA9A2" } },
+      bottom: { style: "thin", color: { argb: "FF9BA9A2" } },
+      left: { style: "thin", color: { argb: "FF9BA9A2" } },
+      right: { style: "thin", color: { argb: "FF9BA9A2" } }
+    };
+
+    const colors = {
+      blue: "FF1687B8",
+      lightBlue: "FFD9EAF2",
+      green: "FFD9EAD3",
+      text: "FF18332D",
+      bad: "FFB04438",
+      white: "FFFFFFFF"
+    };
+
+    function setupSheet(ws, lastCol) {
+      ws.views = [{ state: "frozen", ySplit: 5, showGridLines: false }];
+
+      ws.mergeCells(1, 1, 1, lastCol);
+      ws.getCell(1, 1).value = "Referencia y lote";
+      ws.getCell(1, 1).font = {
+        name: "Arial", size: 13, bold: true, color: { argb: colors.white }
+      };
+      ws.getCell(1, 1).fill = {
+        type: "pattern", pattern: "solid", fgColor: { argb: colors.blue }
+      };
+      ws.getCell(1, 1).alignment = { horizontal: "center", vertical: "middle" };
+
+      ws.mergeCells(2, 1, 2, lastCol);
+      ws.getCell(2, 1).value = `${reference} - ${lot}`;
+      ws.getCell(2, 1).font = {
+        name: "Arial", size: 12, bold: true, color: { argb: colors.text }
+      };
+      ws.getCell(2, 1).alignment = { horizontal: "center", vertical: "middle" };
+
+      ws.getRow(1).height = 25;
+      ws.getRow(2).height = 23;
+    }
+
+    function styleCell(cell, options = {}) {
+      cell.border = border;
+      cell.font = {
+        name: "Arial",
+        size: 10,
+        color: { argb: colors.text },
+        ...options.font
+      };
+      cell.alignment = {
+        vertical: "middle",
+        horizontal: "center",
+        wrapText: true,
+        ...options.alignment
+      };
+
+      if (options.fill) {
+        cell.fill = {
+          type: "pattern",
+          pattern: "solid",
+          fgColor: { argb: options.fill }
+        };
+      }
+    }
+
+    function styleHeader(ws, row, lastCol) {
+      for (let col = 1; col <= lastCol; col++) {
+        styleCell(ws.getCell(row, col), {
+          fill: colors.blue,
+          font: { bold: true, color: { argb: colors.white } }
+        });
+      }
+    }
+
+    function getNumber(id) {
+      return Number($(id)?.textContent || 0);
+    }
+
+    function getInput(selector) {
+      return Number(document.querySelector(selector)?.value || 0);
+    }
+
+    // =====================================
+    // HOJA 1: PLANTA
+    // =====================================
+
+    const plantaCols = 2 + lineSizes.length * 3;
+    const planta = wb.addWorksheet("Planta");
+
+    setupSheet(planta, plantaCols);
+
+    planta.mergeCells(4, 1, 5, 1);
+    planta.getCell(4, 1).value = "Color";
+
+    lineSizes.forEach((size, i) => {
+      const col = 2 + i * 3;
+      planta.mergeCells(4, col, 4, col + 2);
+      planta.getCell(4, col).value = `Talla ${size}`;
+
+      planta.getCell(5, col).value = "Cantidad 1";
+      planta.getCell(5, col + 1).value = "Cantidad 2";
+      planta.getCell(5, col + 2).value = "Total";
+    });
+
+    planta.mergeCells(4, plantaCols, 5, plantaCols);
+    planta.getCell(4, plantaCols).value = "Total color";
+
+    styleHeader(planta, 4, plantaCols);
+    styleHeader(planta, 5, plantaCols);
+
+    let plantaRow = 6;
+
+    lineColors.forEach((color, colorIndex) => {
+      const programRow = plantaRow++;
+
+      planta.getCell(programRow, 1).value = "Programadas";
+
+      lineSizes.forEach((size, sizeIndex) => {
+        const col = 2 + sizeIndex * 3;
+        planta.mergeCells(programRow, col, programRow, col + 2);
+        planta.getCell(programRow, col).value =
+          getInput(`#lineProgram${colorIndex}`);
+      });
+
+      const dataRow = plantaRow++;
+      planta.getCell(dataRow, 1).value = color;
+
+      lineSizes.forEach((size, sizeIndex) => {
+        const col = 2 + sizeIndex * 3;
+
+        const first = getInput(
+          `#lineTableContainer input[data-color="${colorIndex}"][data-size="${sizeIndex}"][data-slot="1"]`
+        );
+
+        const second = getInput(
+          `#lineTableContainer input[data-color="${colorIndex}"][data-size="${sizeIndex}"][data-slot="2"]`
+        );
+
+        planta.getCell(dataRow, col).value = first;
+        planta.getCell(dataRow, col + 1).value = second;
+        planta.getCell(dataRow, col + 2).value = first + second;
+      });
+
+      planta.getCell(dataRow, plantaCols).value =
+        getNumber(`lineColorTotal-${colorIndex}`);
+    });
+
+    const plantaTotalRow = plantaRow;
+    planta.getCell(plantaTotalRow, 1).value = "Total por talla";
+
+    lineSizes.forEach((size, i) => {
+      const col = 2 + i * 3;
+      planta.mergeCells(plantaTotalRow, col, plantaTotalRow, col + 2);
+      planta.getCell(plantaTotalRow, col).value =
+        getNumber(`lineSizeTotal-${i}`);
+    });
+
+    planta.getCell(plantaTotalRow, plantaCols).value =
+      getNumber("lineTableTotal");
+
+    // =====================================
+    // HOJA 2: LÍNEA
+    // =====================================
+
+    const lineCols = lineSizes.length + 3;
+    const linea = wb.addWorksheet("Línea");
+
+    setupSheet(linea, lineCols);
+
+    ["Color", "Concepto", ...lineSizes.map(s => `Talla ${s}`), "Totales"]
+      .forEach((value, i) => {
+        linea.getCell(4, i + 1).value = value;
+      });
+
+    styleHeader(linea, 4, lineCols);
+
+    let lineaRow = 5;
+
+    lineColors.forEach((color, colorIndex) => {
+      const firstRow = lineaRow;
+
+      const concepts = [
+        "Programadas",
+        "Inyectadas",
+        "Averiado",
+        "Buenos"
+      ];
+
+      concepts.forEach((concept, conceptIndex) => {
+        const row = lineaRow++;
+
+        if (conceptIndex === 0) {
+          linea.mergeCells(firstRow, 1, firstRow + 3, 1);
+          linea.getCell(firstRow, 1).value = color;
+        }
+
+        linea.getCell(row, 2).value = concept;
+
+        lineSizes.forEach((size, sizeIndex) => {
+          const col = sizeIndex + 3;
+          let value = 0;
+
+          if (conceptIndex === 0) {
+            value = getInput(`#lineProgram${colorIndex}`);
+          } else if (conceptIndex === 1) {
+            value = getNumber(`injectionTotal-${colorIndex}-${sizeIndex}`);
+          } else if (conceptIndex === 2) {
+            value = getInput(
+              `#lineInjectionTableContainer input[data-injection="bad"][data-color="${colorIndex}"][data-size="${sizeIndex}"]`
+            );
+          } else {
+            value = getNumber(`injectionGood-${colorIndex}-${sizeIndex}`);
+          }
+
+          linea.getCell(row, col).value = value;
+
+          if (conceptIndex === 2) {
+            styleCell(linea.getCell(row, col), {
+              font: { color: { argb: colors.bad } }
+            });
+          }
+        });
+
+        const totalCol = lineCols;
+
+        if (conceptIndex === 0 || conceptIndex === 1) {
+          linea.getCell(row, totalCol).value = "—";
+        } else if (conceptIndex === 2) {
+          linea.getCell(row, totalCol).value =
+            getNumber(`injectionBadColor-${colorIndex}`);
+          styleCell(linea.getCell(row, totalCol), {
+            font: { bold: true, color: { argb: colors.bad } }
+          });
+        } else {
+          linea.getCell(row, totalCol).value =
+            getNumber(`injectionGoodColor-${colorIndex}`);
+        }
+      });
+    });
+
+    ["Total buenos", "Total averiados"].forEach((label, index) => {
+      const row = lineaRow++;
+
+      linea.mergeCells(row, 1, row, 2);
+      linea.getCell(row, 1).value = label;
+
+      lineSizes.forEach((size, sizeIndex) => {
+        const id = index === 0
+          ? `injectionGoodSize-${sizeIndex}`
+          : `injectionBadSize-${sizeIndex}`;
+
+        linea.getCell(row, sizeIndex + 3).value = getNumber(id);
+
+        if (index === 1) {
+          styleCell(linea.getCell(row, sizeIndex + 3), {
+            font: { bold: true, color: { argb: colors.bad } }
+          });
+        }
+      });
+
+      linea.getCell(row, lineCols).value = getNumber(
+        index === 0 ? "injectionGrandGood" : "injectionGrandBad"
+      );
+    });
+
+    // =====================================
+    // HOJA 3: EMPAQUE
+    // =====================================
+
+    const empaque = wb.addWorksheet("Empaque");
+    const empaqueCols = lineSizes.length + 3;
+
+    setupSheet(empaque, empaqueCols);
+
+    ["Color", "Concepto", ...lineSizes.map(s => `Talla ${s}`), "Totales"]
+      .forEach((value, i) => {
+        empaque.getCell(4, i + 1).value = value;
+      });
+
+    styleHeader(empaque, 4, empaqueCols);
+
+    let empaqueRow = 5;
+
+    lineColors.forEach((color, colorIndex) => {
+      const firstRow = empaqueRow;
+
+      ["Programadas", "Total"].forEach((concept, conceptIndex) => {
+        const row = empaqueRow++;
+
+        if (conceptIndex === 0) {
+          empaque.mergeCells(firstRow, 1, firstRow + 1, 1);
+          empaque.getCell(firstRow, 1).value = color;
+        }
+
+        empaque.getCell(row, 2).value = concept;
+
+        lineSizes.forEach((size, sizeIndex) => {
+          const value = conceptIndex === 0
+            ? getInput(`#lineProgram${colorIndex}`)
+            : getNumber(`summaryTotal-${colorIndex}-${sizeIndex}`);
+
+          empaque.getCell(row, sizeIndex + 3).value = value;
+        });
+
+        empaque.getCell(row, empaqueCols).value =
+          conceptIndex === 0
+            ? "—"
+            : getNumber(`summaryGoodColor-${colorIndex}`);
+      });
+    });
+
+    const empaqueTotalRow = empaqueRow;
+
+    empaque.mergeCells(empaqueTotalRow, 1, empaqueTotalRow, 2);
+    empaque.getCell(empaqueTotalRow, 1).value = "Totales por talla";
+
+    lineSizes.forEach((size, sizeIndex) => {
+      empaque.getCell(empaqueTotalRow, sizeIndex + 3).value =
+        getNumber(`summaryGoodSize-${sizeIndex}`);
+    });
+
+    empaque.getCell(empaqueTotalRow, empaqueCols).value =
+      getNumber("summaryGrandGood");
+
+    // =====================================
+    // FORMATO GENERAL DE LAS TRES HOJAS
+    // =====================================
+
+    [planta, linea, empaque].forEach(ws => {
+      ws.eachRow((row, rowNumber) => {
+        row.height = rowNumber <= 2 ? row.height : 22;
+
+        row.eachCell({ includeEmpty: true }, cell => {
+          if (!cell.border || !cell.border.top) {
+            styleCell(cell);
+          }
+        });
+      });
+
+      ws.getRow(1).height = 25;
+      ws.getRow(2).height = 23;
+
+      for (let col = 1; col <= ws.columnCount; col++) {
+        ws.getColumn(col).width = col === 1 ? 22 : 14;
+      }
+
+      ws.pageSetup = {
+        orientation: "landscape",
+        fitToPage: true,
+        fitToWidth: 1,
+        fitToHeight: 0,
+        paperSize: ws.PAPER_SIZE_LETTER
+      };
+    });
+
+    // Resaltar totales
+    [planta, linea, empaque].forEach(ws => {
+      ws.eachRow((row, rowNumber) => {
+        row.eachCell(cell => {
+          if (
+            String(cell.value || "").toLowerCase().includes("total") ||
+            rowNumber === plantaTotalRow && ws === planta ||
+            rowNumber === empaqueTotalRow && ws === empaque
+          ) {
+            cell.font = {
+              ...cell.font,
+              bold: true
+            };
+          }
+        });
+      });
+    });
+
+    const buffer = await wb.xlsx.writeBuffer();
+    const blob = new Blob([buffer], {
+      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    });
+
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+
+    const safeName = `${reference} - ${lot}`
+      .replace(/[\\/:*?"<>|]/g, "_");
+
+    link.href = url;
+    link.download = `${safeName}.xlsx`;
+    link.click();
+
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+
+  } catch (error) {
+    console.error("Error al exportar el Excel de Línea:", error);
+    alert("No se pudo generar el Excel. Revisa la consola para ver el error.");
+  } finally {
+    if (button) button.disabled = false;
+  }
+}
+
+

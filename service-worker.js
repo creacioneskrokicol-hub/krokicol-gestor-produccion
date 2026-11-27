@@ -1,4 +1,4 @@
-const CACHE_NAME = "krokicol-pwa-v12";
+const CACHE_NAME = "krokicol-pwa-v13";
 const APP_SHELL = [
   "./",
   "./index.html",

@@ -1419,54 +1419,249 @@ async function exportLineExcel() {
     empaque.getCell(empaqueTotalRow, empaqueCols).value =
       getNumber("summaryGrandGood");
 
+
+
+
     // =====================================
-    // FORMATO GENERAL DE LAS TRES HOJAS
+    // DISEÑO FINAL DEL EXCEL
+    // SOLO DISEÑO, COLORES Y BORDES
     // =====================================
 
-    [planta, linea, empaque].forEach(ws => {
-      ws.eachRow((row, rowNumber) => {
-        row.height = rowNumber <= 2 ? row.height : 22;
+    const excelColors = {
+      blue: "FF1687B8",
+      programmed: "FF0563C1",
+      green: "FF176B3A",
+      red: "FFDC3545",
+      text: "FF18332D",
+      white: "FFFFFFFF",
+      border: "FFB7C9C2"
+    };
 
-        row.eachCell({ includeEmpty: true }, cell => {
-          if (!cell.border || !cell.border.top) {
-            styleCell(cell);
-          }
-        });
-      });
+    // Formato general de las celdas
+    function formatCell(cell, options = {}) {
 
-      ws.getRow(1).height = 25;
-      ws.getRow(2).height = 23;
-
-      for (let col = 1; col <= ws.columnCount; col++) {
-        ws.getColumn(col).width = col === 1 ? 22 : 14;
-      }
-
-      ws.pageSetup = {
-        orientation: "landscape",
-        fitToPage: true,
-        fitToWidth: 1,
-        fitToHeight: 0,
-        paperSize: ws.PAPER_SIZE_LETTER
+      cell.font = {
+        ...(cell.font || {}),
+        name: "Arial",
+        size: 10,
+        color: { argb: options.color || excelColors.text },
+        bold: options.bold ?? false
       };
-    });
 
-    // Resaltar totales
-    [planta, linea, empaque].forEach(ws => {
-      ws.eachRow((row, rowNumber) => {
-        row.eachCell(cell => {
-          if (
-            String(cell.value || "").toLowerCase().includes("total") ||
-            rowNumber === plantaTotalRow && ws === planta ||
-            rowNumber === empaqueTotalRow && ws === empaque
-          ) {
-            cell.font = {
-              ...cell.font,
-              bold: true
-            };
-          }
+      cell.fill = {
+        type: "pattern",
+        pattern: "solid",
+        fgColor: { argb: excelColors.white }
+      };
+
+      cell.alignment = {
+        vertical: "middle",
+        horizontal: "center",
+        wrapText: true
+      };
+
+      cell.border = {
+        top: {
+          style: "thin",
+          color: { argb: excelColors.border }
+        },
+        bottom: {
+          style: options.separator ? "medium" : "thin",
+          color: { argb: excelColors.border }
+        },
+        left: {
+          style: "thin",
+          color: { argb: excelColors.border }
+        },
+        right: {
+          style: "thin",
+          color: { argb: excelColors.border }
+        }
+      };
+    }
+
+    // Encabezados azules
+    function formatHeader(ws, row, lastCol) {
+      for (let col = 1; col <= lastCol; col++) {
+        const cell = ws.getCell(row, col);
+
+        cell.fill = {
+          type: "pattern",
+          pattern: "solid",
+          fgColor: { argb: excelColors.blue }
+        };
+
+        cell.font = {
+          name: "Arial",
+          size: 10,
+          bold: true,
+          color: { argb: excelColors.white }
+        };
+
+        cell.alignment = {
+          vertical: "middle",
+          horizontal: "center",
+          wrapText: true
+        };
+
+        cell.border = {
+          top: { style: "thin", color: { argb: excelColors.border } },
+          bottom: { style: "medium", color: { argb: excelColors.border } },
+          left: { style: "thin", color: { argb: excelColors.border } },
+          right: { style: "thin", color: { argb: excelColors.border } }
+        };
+      }
+    }
+
+    // Aplicar formato a una fila completa
+    function formatRow(ws, row, lastCol, options = {}) {
+      for (let col = 1; col <= lastCol; col++) {
+        formatCell(ws.getCell(row, col), options);
+      }
+    }
+
+    // =====================================
+    // HOJA 1: PLANTA
+    // =====================================
+
+    formatHeader(planta, 4, plantaCols);
+    formatHeader(planta, 5, plantaCols);
+
+    lineColors.forEach((color, index) => {
+
+      const programRow = 6 + index * 2;
+      const dataRow = programRow + 1;
+
+      // Programadas en azul
+      formatRow(planta, programRow, plantaCols, {
+        color: excelColors.programmed,
+        bold: true
+      });
+
+      // Datos de producción
+      formatRow(planta, dataRow, plantaCols, {
+        color: excelColors.text,
+        separator: true
+      });
+
+      // Totales por talla en verde
+      lineSizes.forEach((size, sizeIndex) => {
+        const totalCol = 2 + sizeIndex * 3 + 2;
+
+        formatCell(planta.getCell(dataRow, totalCol), {
+          color: excelColors.green,
+          bold: true,
+          separator: true
         });
       });
+
+      // Total del color
+      formatCell(planta.getCell(dataRow, plantaCols), {
+        color: excelColors.green,
+        bold: true,
+        separator: true
+      });
     });
+
+    // Totales finales
+    formatRow(planta, plantaTotalRow, plantaCols, {
+      color: excelColors.green,
+      bold: true
+    });
+
+    planta.getRow(plantaTotalRow).height = 25;
+
+    // =====================================
+    // HOJA 2: LÍNEA
+    // =====================================
+
+    formatHeader(linea, 4, lineCols);
+
+    lineColors.forEach((color, index) => {
+
+      const firstRow = 5 + index * 4;
+
+      // Programadas
+      formatRow(linea, firstRow, lineCols, {
+        color: excelColors.programmed,
+        bold: true
+      });
+
+      // Inyectadas
+      formatRow(linea, firstRow + 1, lineCols, {
+        color: excelColors.text,
+        bold: true
+      });
+
+      // Averiados
+      formatRow(linea, firstRow + 2, lineCols, {
+        color: excelColors.red,
+        bold: false
+      });
+
+      // Total de averiados
+      formatCell(linea.getCell(firstRow + 2, lineCols), {
+        color: excelColors.red,
+        bold: true
+      });
+
+      // Buenos
+      formatRow(linea, firstRow + 3, lineCols, {
+        color: excelColors.green,
+        bold: true,
+        separator: true
+      });
+    });
+
+    // Totales generales
+    const lineaTotalsStart = 5 + lineColors.length * 4;
+
+    formatRow(linea, lineaTotalsStart, lineCols, {
+      color: excelColors.green,
+      bold: true
+    });
+
+    formatRow(linea, lineaTotalsStart + 1, lineCols, {
+      color: excelColors.red,
+      bold: true
+    });
+
+    // =====================================
+    // HOJA 3: EMPAQUE
+    // =====================================
+
+    formatHeader(empaque, 4, empaqueCols);
+
+    lineColors.forEach((color, index) => {
+
+      const programRow = 5 + index * 2;
+      const totalRow = programRow + 1;
+
+      // Programadas
+      formatRow(empaque, programRow, empaqueCols, {
+        color: excelColors.programmed,
+        bold: true
+      });
+
+      // Totales por color
+      formatRow(empaque, totalRow, empaqueCols, {
+        color: excelColors.green,
+        bold: true,
+        separator: true
+      });
+    });
+
+    // Totales finales de empaque
+    formatRow(empaque, empaqueTotalRow, empaqueCols, {
+      color: excelColors.green,
+      bold: true
+    });
+
+    empaque.getRow(empaqueTotalRow).height = 25;
+
+
+
+
 
     const buffer = await wb.xlsx.writeBuffer();
     const blob = new Blob([buffer], {

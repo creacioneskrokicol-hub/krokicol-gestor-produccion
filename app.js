@@ -1095,6 +1095,7 @@ async function exportLineExcel() {
     const wb = new ExcelJS.Workbook();
     wb.creator = "KROKICOL";
     wb.subject = "Control de producción - Línea";
+    wb.calcProperties = { fullCalcOnLoad: true, forceFullCalc: true };
 
     const border = {
       top: { style: "thin", color: { argb: "FF9BA9A2" } },
@@ -1113,7 +1114,7 @@ async function exportLineExcel() {
     };
 
     function setupSheet(ws, lastCol) {
-      ws.views = [{ state: "frozen", ySplit: 5, showGridLines: false }];
+      ws.views = [{ state: "normal", showGridLines: false }];
 
       ws.mergeCells(1, 1, 1, lastCol);
       ws.getCell(1, 1).value = "Referencia y lote";
@@ -1235,11 +1236,24 @@ async function exportLineExcel() {
 
         planta.getCell(dataRow, col).value = first;
         planta.getCell(dataRow, col + 1).value = second;
-        planta.getCell(dataRow, col + 2).value = first + second;
+        planta.getCell(dataRow, col + 2).value = {
+          formula: `SUM(${planta.getCell(dataRow, col).address}:${planta.getCell(dataRow, col + 1).address})`,
+          result: first + second
+        };
       });
 
-      planta.getCell(dataRow, plantaCols).value =
-        getNumber(`lineColorTotal-${colorIndex}`);
+      const plantaTotalColor = lineSizes.reduce((sum, size, sizeIndex) => {
+        const first = getInput(`#lineTableContainer input[data-color="${colorIndex}"][data-size="${sizeIndex}"][data-slot="1"]`);
+        const second = getInput(`#lineTableContainer input[data-color="${colorIndex}"][data-size="${sizeIndex}"][data-slot="2"]`);
+        return sum + first + second;
+      }, 0);
+      const plantaTotalParts = lineSizes.map((size, sizeIndex) =>
+        planta.getCell(dataRow, 4 + sizeIndex * 3).address
+      );
+      planta.getCell(dataRow, plantaCols).value = {
+        formula: plantaTotalParts.join("+"),
+        result: plantaTotalColor
+      };
     });
 
     const plantaTotalRow = plantaRow;
@@ -1248,12 +1262,31 @@ async function exportLineExcel() {
     lineSizes.forEach((size, i) => {
       const col = 2 + i * 3;
       planta.mergeCells(plantaTotalRow, col, plantaTotalRow, col + 2);
-      planta.getCell(plantaTotalRow, col).value =
-        getNumber(`lineSizeTotal-${i}`);
+      const dataRows = lineColors.map((color, colorIndex) => 7 + colorIndex * 2);
+      const totalCells = dataRows.map(row => planta.getCell(row, col + 2).address);
+      const cachedTotal = lineColors.reduce((sum, color, colorIndex) => {
+        const first = getInput(`#lineTableContainer input[data-color="${colorIndex}"][data-size="${i}"][data-slot="1"]`);
+        const second = getInput(`#lineTableContainer input[data-color="${colorIndex}"][data-size="${i}"][data-slot="2"]`);
+        return sum + first + second;
+      }, 0);
+      planta.getCell(plantaTotalRow, col).value = {
+        formula: totalCells.join("+"),
+        result: cachedTotal
+      };
     });
 
-    planta.getCell(plantaTotalRow, plantaCols).value =
-      getNumber("lineTableTotal");
+    const plantaGrandTotal = lineColors.reduce((sum, color, colorIndex) =>
+      sum + lineSizes.reduce((sub, size, sizeIndex) =>
+        sub +
+        getInput(`#lineTableContainer input[data-color="${colorIndex}"][data-size="${sizeIndex}"][data-slot="1"]`) +
+        getInput(`#lineTableContainer input[data-color="${colorIndex}"][data-size="${sizeIndex}"][data-slot="2"]`), 0), 0);
+    const plantaColorTotals = lineColors.map((color, colorIndex) =>
+      planta.getCell(7 + colorIndex * 2, plantaCols).address
+    );
+    planta.getCell(plantaTotalRow, plantaCols).value = {
+      formula: plantaColorTotals.join("+"),
+      result: plantaGrandTotal
+    };
 
     // =====================================
     // HOJA 2: LÍNEA
@@ -1309,7 +1342,25 @@ async function exportLineExcel() {
             value = getNumber(`injectionGood-${colorIndex}-${sizeIndex}`);
           }
 
-          linea.getCell(row, col).value = value;
+          if (conceptIndex === 1) {
+            const plantaDataRow = 7 + colorIndex * 2;
+            const plantaTotalCol = 4 + sizeIndex * 3;
+            linea.getCell(row, col).value = {
+              formula: `'Planta'!${planta.getCell(plantaDataRow, plantaTotalCol).address}`,
+              result: value
+            };
+          } else if (conceptIndex === 3) {
+            const injected = getNumber(`injectionTotal-${colorIndex}-${sizeIndex}`);
+            const bad = getInput(
+              `#lineInjectionTableContainer input[data-injection="bad"][data-color="${colorIndex}"][data-size="${sizeIndex}"]`
+            );
+            linea.getCell(row, col).value = {
+              formula: `${linea.getCell(row - 2, col).address}-${linea.getCell(row - 1, col).address}`,
+              result: injected - bad
+            };
+          } else {
+            linea.getCell(row, col).value = value;
+          }
 
           if (conceptIndex === 2) {
             styleCell(linea.getCell(row, col), {
@@ -1323,14 +1374,24 @@ async function exportLineExcel() {
         if (conceptIndex === 0 || conceptIndex === 1) {
           linea.getCell(row, totalCol).value = "—";
         } else if (conceptIndex === 2) {
-          linea.getCell(row, totalCol).value =
-            getNumber(`injectionBadColor-${colorIndex}`);
+          const badCells = lineSizes.map((size, sizeIndex) =>
+            linea.getCell(row, sizeIndex + 3).address
+          );
+          linea.getCell(row, totalCol).value = {
+            formula: badCells.join("+"),
+            result: getNumber(`injectionBadColor-${colorIndex}`)
+          };
           styleCell(linea.getCell(row, totalCol), {
             font: { bold: true, color: { argb: colors.bad } }
           });
         } else {
-          linea.getCell(row, totalCol).value =
-            getNumber(`injectionGoodColor-${colorIndex}`);
+          const goodCells = lineSizes.map((size, sizeIndex) =>
+            linea.getCell(row, sizeIndex + 3).address
+          );
+          linea.getCell(row, totalCol).value = {
+            formula: goodCells.join("+"),
+            result: getNumber(`injectionGoodColor-${colorIndex}`)
+          };
         }
       });
     });
@@ -1346,7 +1407,15 @@ async function exportLineExcel() {
           ? `injectionGoodSize-${sizeIndex}`
           : `injectionBadSize-${sizeIndex}`;
 
-        linea.getCell(row, sizeIndex + 3).value = getNumber(id);
+        const cached = getNumber(id);
+        const sourceCells = lineColors.map((color, colorIndex) => {
+          const sourceRow = 5 + colorIndex * 4 + (index === 0 ? 3 : 2);
+          return linea.getCell(sourceRow, sizeIndex + 3).address;
+        });
+        linea.getCell(row, sizeIndex + 3).value = {
+          formula: sourceCells.join("+"),
+          result: cached
+        };
 
         if (index === 1) {
           styleCell(linea.getCell(row, sizeIndex + 3), {
@@ -1355,9 +1424,17 @@ async function exportLineExcel() {
         }
       });
 
-      linea.getCell(row, lineCols).value = getNumber(
+      const cachedGrand = getNumber(
         index === 0 ? "injectionGrandGood" : "injectionGrandBad"
       );
+      const sourceTotalCells = lineColors.map((color, colorIndex) => {
+        const sourceRow = 5 + colorIndex * 4 + (index === 0 ? 3 : 2);
+        return linea.getCell(sourceRow, lineCols).address;
+      });
+      linea.getCell(row, lineCols).value = {
+        formula: sourceTotalCells.join("+"),
+        result: cachedGrand
+      };
     });
 
     // =====================================
@@ -1396,13 +1473,28 @@ async function exportLineExcel() {
             ? getInput(`#lineProgram${colorIndex}`)
             : getNumber(`summaryTotal-${colorIndex}-${sizeIndex}`);
 
-          empaque.getCell(row, sizeIndex + 3).value = value;
+          if (conceptIndex === 1) {
+            const lineaBuenosRow = 5 + colorIndex * 4 + 3;
+            empaque.getCell(row, sizeIndex + 3).value = {
+              formula: `'Línea'!${linea.getCell(lineaBuenosRow, sizeIndex + 3).address}`,
+              result: value
+            };
+          } else {
+            empaque.getCell(row, sizeIndex + 3).value = value;
+          }
         });
 
-        empaque.getCell(row, empaqueCols).value =
-          conceptIndex === 0
-            ? "—"
-            : getNumber(`summaryGoodColor-${colorIndex}`);
+        if (conceptIndex === 0) {
+          empaque.getCell(row, empaqueCols).value = "—";
+        } else {
+          const empaqueCells = lineSizes.map((size, sizeIndex) =>
+            empaque.getCell(row, sizeIndex + 3).address
+          );
+          empaque.getCell(row, empaqueCols).value = {
+            formula: empaqueCells.join("+"),
+            result: getNumber(`summaryGoodColor-${colorIndex}`)
+          };
+        }
       });
     });
 
@@ -1412,256 +1504,204 @@ async function exportLineExcel() {
     empaque.getCell(empaqueTotalRow, 1).value = "Totales por talla";
 
     lineSizes.forEach((size, sizeIndex) => {
-      empaque.getCell(empaqueTotalRow, sizeIndex + 3).value =
-        getNumber(`summaryGoodSize-${sizeIndex}`);
+      const sourceCells = lineColors.map((color, colorIndex) => {
+        const dataRow = 6 + colorIndex * 2;
+        return empaque.getCell(dataRow, sizeIndex + 3).address;
+      });
+      empaque.getCell(empaqueTotalRow, sizeIndex + 3).value = {
+        formula: sourceCells.join("+"),
+        result: getNumber(`summaryGoodSize-${sizeIndex}`)
+      };
     });
 
-    empaque.getCell(empaqueTotalRow, empaqueCols).value =
-      getNumber("summaryGrandGood");
-
-
-
-
-    // =====================================
-    // DISEÑO FINAL DEL EXCEL
-    // SOLO DISEÑO, COLORES Y BORDES
-    // =====================================
-
-    const excelColors = {
-      blue: "FF1687B8",
-      programmed: "FF0563C1",
-      green: "FF176B3A",
-      red: "FFDC3545",
-      text: "FF18332D",
-      white: "FFFFFFFF",
-      border: "FFB7C9C2"
+    const empaqueGrandCells = lineColors.map((color, colorIndex) =>
+      empaque.getCell(6 + colorIndex * 2, empaqueCols).address
+    );
+    empaque.getCell(empaqueTotalRow, empaqueCols).value = {
+      formula: empaqueGrandCells.join("+"),
+      result: getNumber("summaryGrandGood")
     };
 
-    // Formato general de las celdas
-    function formatCell(cell, options = {}) {
 
-      cell.font = {
-        ...(cell.font || {}),
-        name: "Arial",
-        size: 10,
-        color: { argb: options.color || excelColors.text },
-        bold: options.bold ?? false
-      };
 
-      cell.fill = {
+
+    // =====================================
+    // DISEÑO FINAL: fiel al Excel de referencia
+    // =====================================
+
+    const referenceStyle = {
+      blue: "FF1687B8",
+      dark: "FF18332D",
+      red: "FFB04438",
+      white: "FFFFFFFF",
+      border: "FF9BA9A2"
+    };
+
+    const thinBorder = {
+      top: { style: "thin", color: { argb: referenceStyle.border } },
+      bottom: { style: "thin", color: { argb: referenceStyle.border } },
+      left: { style: "thin", color: { argb: referenceStyle.border } },
+      right: { style: "thin", color: { argb: referenceStyle.border } }
+    };
+
+    function applyReferenceBase(ws, lastRow, lastCol) {
+      for (let row = 1; row <= lastRow; row++) {
+        for (let col = 1; col <= lastCol; col++) {
+          const cell = ws.getCell(row, col);
+          cell.font = {
+            name: "Arial",
+            size: 10,
+            bold: false,
+            color: { argb: referenceStyle.dark }
+          };
+          cell.fill = {
+            type: "pattern",
+            pattern: "solid",
+            fgColor: { argb: referenceStyle.white }
+          };
+          cell.alignment = {
+            vertical: "middle",
+            horizontal: "center",
+            wrapText: true
+          };
+          cell.border = thinBorder;
+        }
+      }
+
+      // Franja superior azul, igual al archivo modelo.
+      ws.getCell(1, 1).fill = {
         type: "pattern",
         pattern: "solid",
-        fgColor: { argb: excelColors.white }
+        fgColor: { argb: referenceStyle.blue }
       };
-
-      cell.alignment = {
-        vertical: "middle",
-        horizontal: "center",
-        wrapText: true
+      ws.getCell(1, 1).font = {
+        name: "Arial",
+        size: 10,
+        bold: false,
+        color: { argb: referenceStyle.dark }
       };
-
-      cell.border = {
-        top: {
-          style: "thin",
-          color: { argb: excelColors.border }
-        },
-        bottom: {
-          style: options.separator ? "medium" : "thin",
-          color: { argb: excelColors.border }
-        },
-        left: {
-          style: "thin",
-          color: { argb: excelColors.border }
-        },
-        right: {
-          style: "thin",
-          color: { argb: excelColors.border }
-        }
-      };
+      ws.getRow(1).height = 20;
+      ws.getRow(2).height = 20;
     }
 
-    // Encabezados azules
-    function formatHeader(ws, row, lastCol) {
+    function applyReferenceHeader(ws, row, lastCol) {
       for (let col = 1; col <= lastCol; col++) {
         const cell = ws.getCell(row, col);
-
         cell.fill = {
           type: "pattern",
           pattern: "solid",
-          fgColor: { argb: excelColors.blue }
+          fgColor: { argb: referenceStyle.blue }
         };
-
         cell.font = {
           name: "Arial",
           size: 10,
           bold: true,
-          color: { argb: excelColors.white }
+          color: { argb: referenceStyle.white }
         };
-
+        cell.border = thinBorder;
         cell.alignment = {
           vertical: "middle",
           horizontal: "center",
           wrapText: true
         };
-
-        cell.border = {
-          top: { style: "thin", color: { argb: excelColors.border } },
-          bottom: { style: "medium", color: { argb: excelColors.border } },
-          left: { style: "thin", color: { argb: excelColors.border } },
-          right: { style: "thin", color: { argb: excelColors.border } }
-        };
       }
     }
 
-    // Aplicar formato a una fila completa
-    function formatRow(ws, row, lastCol, options = {}) {
-      for (let col = 1; col <= lastCol; col++) {
-        formatCell(ws.getCell(row, col), options);
+    function applyReferenceRed(cell, bold = false) {
+      cell.font = {
+        name: "Arial",
+        size: 10,
+        bold,
+        color: { argb: referenceStyle.red }
+      };
+    }
+
+    // Dimensiones sencillas, siguiendo el Excel modelo:
+    // primera columna amplia para colores, segunda para conceptos y
+    // columnas de tallas uniformes. Sin filtros ni paneles congelados.
+    function applySimpleDimensions(ws, lastRow, lastCol, isPlanta = false) {
+      ws.getColumn(1).width = 22;
+      if (!isPlanta && lastCol >= 2) ws.getColumn(2).width = 14;
+      if (isPlanta && lastCol >= 2) ws.getColumn(2).width = 14;
+      for (let col = isPlanta ? 3 : 3; col <= lastCol; col++) {
+        ws.getColumn(col).width = 13;
+      }
+      ws.getRow(1).height = 25;
+      ws.getRow(2).height = 23;
+      ws.getRow(4).height = 22;
+      if (isPlanta) ws.getRow(5).height = 22;
+      const firstDataRow = isPlanta ? 6 : 5;
+      for (let row = firstDataRow; row <= lastRow; row++) {
+        ws.getRow(row).height = 22;
       }
     }
 
-    // =====================================
-    // HOJA 1: PLANTA
-    // =====================================
+    applySimpleDimensions(planta, plantaTotalRow, plantaCols, true);
+    applySimpleDimensions(linea, lineaRow - 1, lineCols, false);
+    applySimpleDimensions(empaque, empaqueTotalRow, empaqueCols, false);
 
-    formatHeader(planta, 4, plantaCols);
-    formatHeader(planta, 5, plantaCols);
+    // HOJA 1 - PLANTA
+    applyReferenceBase(planta, plantaTotalRow, plantaCols);
+    applyReferenceHeader(planta, 4, plantaCols);
+    applyReferenceHeader(planta, 5, plantaCols);
 
-    lineColors.forEach((color, index) => {
-
-      const programRow = 6 + index * 2;
-      const dataRow = programRow + 1;
-
-      // Programadas en azul
-      formatRow(planta, programRow, plantaCols, {
-        color: excelColors.programmed,
-        bold: true
-      });
-
-      // Datos de producción
-      formatRow(planta, dataRow, plantaCols, {
-        color: excelColors.text,
-        separator: true
-      });
-
-      // Totales por talla en verde
-      lineSizes.forEach((size, sizeIndex) => {
-        const totalCol = 2 + sizeIndex * 3 + 2;
-
-        formatCell(planta.getCell(dataRow, totalCol), {
-          color: excelColors.green,
-          bold: true,
-          separator: true
-        });
-      });
-
-      // Total del color
-      formatCell(planta.getCell(dataRow, plantaCols), {
-        color: excelColors.green,
+    // Solo la fila final de totales va en negrita, como en el modelo.
+    for (let col = 1; col <= plantaCols; col++) {
+      planta.getCell(plantaTotalRow, col).font = {
+        name: "Arial",
+        size: 10,
         bold: true,
-        separator: true
-      });
+        color: { argb: referenceStyle.dark }
+      };
+    }
+
+    // HOJA 2 - LÍNEA
+    applyReferenceBase(linea, lineaRow - 1, lineCols);
+    applyReferenceHeader(linea, 4, lineCols);
+
+    // Averiados: únicamente las cantidades se muestran en rojo.
+    lineColors.forEach((color, colorIndex) => {
+      const badRow = 5 + colorIndex * 4 + 2;
+      for (let col = 3; col <= lineCols; col++) {
+        applyReferenceRed(linea.getCell(badRow, col), col === lineCols);
+      }
     });
 
-    // Totales finales
-    formatRow(planta, plantaTotalRow, plantaCols, {
-      color: excelColors.green,
-      bold: true
-    });
-
-    planta.getRow(plantaTotalRow).height = 25;
-
-    // =====================================
-    // HOJA 2: LÍNEA
-    // =====================================
-
-    formatHeader(linea, 4, lineCols);
-
-    lineColors.forEach((color, index) => {
-
-      const firstRow = 5 + index * 4;
-
-      // Programadas
-      formatRow(linea, firstRow, lineCols, {
-        color: excelColors.programmed,
-        bold: true
-      });
-
-      // Inyectadas
-      formatRow(linea, firstRow + 1, lineCols, {
-        color: excelColors.text,
-        bold: true
-      });
-
-      // Averiados
-      formatRow(linea, firstRow + 2, lineCols, {
-        color: excelColors.red,
-        bold: false
-      });
-
-      // Total de averiados
-      formatCell(linea.getCell(firstRow + 2, lineCols), {
-        color: excelColors.red,
-        bold: true
-      });
-
-      // Buenos
-      formatRow(linea, firstRow + 3, lineCols, {
-        color: excelColors.green,
-        bold: true,
-        separator: true
-      });
-    });
-
-    // Totales generales
+    // Las etiquetas de los totales generales van en negrita.
+    // Los valores de "Total averiados" van en rojo y negrita;
+    // el total general de la última columna permanece oscuro.
     const lineaTotalsStart = 5 + lineColors.length * 4;
+    for (let col = 1; col <= lineCols; col++) {
+      linea.getCell(lineaTotalsStart, col).font = {
+        name: "Arial",
+        size: 10,
+        bold: col === 1,
+        color: { argb: referenceStyle.dark }
+      };
+      linea.getCell(lineaTotalsStart + 1, col).font = {
+        name: "Arial",
+        size: 10,
+        bold: col === 1,
+        color: { argb: referenceStyle.dark }
+      };
+    }
+    for (let col = 3; col < lineCols; col++) {
+      applyReferenceRed(linea.getCell(lineaTotalsStart + 1, col), true);
+    }
 
-    formatRow(linea, lineaTotalsStart, lineCols, {
-      color: excelColors.green,
-      bold: true
-    });
+    // HOJA 3 - EMPAQUE
+    applyReferenceBase(empaque, empaqueTotalRow, empaqueCols);
+    applyReferenceHeader(empaque, 4, empaqueCols);
 
-    formatRow(linea, lineaTotalsStart + 1, lineCols, {
-      color: excelColors.red,
-      bold: true
-    });
-
-    // =====================================
-    // HOJA 3: EMPAQUE
-    // =====================================
-
-    formatHeader(empaque, 4, empaqueCols);
-
-    lineColors.forEach((color, index) => {
-
-      const programRow = 5 + index * 2;
-      const totalRow = programRow + 1;
-
-      // Programadas
-      formatRow(empaque, programRow, empaqueCols, {
-        color: excelColors.programmed,
-        bold: true
-      });
-
-      // Totales por color
-      formatRow(empaque, totalRow, empaqueCols, {
-        color: excelColors.green,
+    // Totales finales en negrita; el resto conserva fondo blanco.
+    for (let col = 1; col <= empaqueCols; col++) {
+      empaque.getCell(empaqueTotalRow, col).font = {
+        name: "Arial",
+        size: 10,
         bold: true,
-        separator: true
-      });
-    });
-
-    // Totales finales de empaque
-    formatRow(empaque, empaqueTotalRow, empaqueCols, {
-      color: excelColors.green,
-      bold: true
-    });
-
-    empaque.getRow(empaqueTotalRow).height = 25;
-
-
-
-
+        color: { argb: referenceStyle.dark }
+      };
+    }
 
     const buffer = await wb.xlsx.writeBuffer();
     const blob = new Blob([buffer], {

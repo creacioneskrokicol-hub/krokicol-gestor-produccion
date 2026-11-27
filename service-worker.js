@@ -1,4 +1,4 @@
-const CACHE_NAME = "krokicol-pwa-v13";
+const CACHE_NAME = "krokicol-pwa-v17";
 const APP_SHELL = [
   "./",
   "./index.html",
@@ -29,45 +29,25 @@ self.addEventListener("fetch", event => {
   if (request.method !== "GET") return;
 
   const url = new URL(request.url);
-  const isExcelLibrary = url.hostname === "cdn.jsdelivr.net" &&
-    url.pathname.includes("/exceljs@4.4.0/dist/exceljs.min.js");
+  if (url.origin !== self.location.origin) return;
 
-  if (isExcelLibrary) {
-    event.respondWith((async () => {
-      const cache = await caches.open(CACHE_NAME);
+  // Primero intenta obtener la versión publicada; usa caché solo sin conexión.
+  event.respondWith((async () => {
+    const cache = await caches.open(CACHE_NAME);
+    try {
+      const response = await fetch(request, { cache: "no-store" });
+      if (response && response.ok) {
+        await cache.put(request, response.clone());
+      }
+      return response;
+    } catch (error) {
       const cached = await cache.match(request);
       if (cached) return cached;
-      try {
-        const response = await fetch(request);
-        if (response && (response.ok || response.type === "opaque")) {
-          await cache.put(request, response.clone());
-        }
-        return response;
-      } catch (error) {
-        return new Response("La biblioteca de Excel aún no está guardada para uso sin conexión.", {
-          status: 503,
-          headers: { "Content-Type": "text/plain; charset=utf-8" }
-        });
+      if (request.mode === "navigate") {
+        return (await cache.match("./index.html")) ||
+          new Response("La aplicación no está disponible sin conexión.", { status: 503 });
       }
-    })());
-    return;
-  }
-
-  if (url.origin === self.location.origin) {
-    event.respondWith((async () => {
-      const cache = await caches.open(CACHE_NAME);
-      const cached = await cache.match(request);
-      if (cached) return cached;
-      try {
-        const response = await fetch(request);
-        if (response && response.ok) cache.put(request, response.clone());
-        return response;
-      } catch (error) {
-        if (request.mode === "navigate") {
-          return cache.match("./index.html");
-        }
-        return new Response("", { status: 503, statusText: "Offline" });
-      }
-    })());
-  }
+      return new Response("", { status: 503, statusText: "Offline" });
+    }
+  })());
 });
